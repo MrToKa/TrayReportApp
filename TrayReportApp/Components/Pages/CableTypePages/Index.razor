@@ -27,6 +27,9 @@
             </ActivatorContent>
         </MudFileUpload>
     </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SimCardDownload" DropShadow="false" OnClick="@(() => ExportTableAsync())">Download Report</MudButton>
+    </MudItem>
 </MudGrid>
 
 <MudPaper Elevation="0" Class="pa-4">
@@ -130,5 +133,11 @@
         }
         await ClearAsync();
         await ReloadDataAsync();
+    }
+
+    private async Task ExportTableAsync()
+    {
+        await CableTypeService.ExportTableEntriesAsync();
+        Snackbar.Add("Table was exported successfully!", Severity.Success);
     }
 }

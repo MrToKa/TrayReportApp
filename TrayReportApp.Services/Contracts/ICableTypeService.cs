@@ -12,5 +12,6 @@ namespace TrayReportApp.Services.Contracts
         Task DeleteCableTypeAsync(int id);
         Task UploadFromFileAsync(IBrowserFile file);
         Task<List<string>> GetCablesPurposes();
+        Task ExportTableEntriesAsync();
     }
 }
