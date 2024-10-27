@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
+using TrayReportApp.Models;
 using TrayReportApp.Services.Models;
 
 namespace TrayReportApp.Services.Contracts
@@ -13,5 +14,6 @@ namespace TrayReportApp.Services.Contracts
         Task UploadFromFileAsync(IBrowserFile file);
         Task<List<string>> GetCablesPurposes();
         Task ExportTableEntriesAsync();
+        Task ExportFilteredTableEntriesAsync(IEnumerable<CableTypeServiceModel> cableTypes);
     }
 }

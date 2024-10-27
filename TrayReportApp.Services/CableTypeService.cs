@@ -154,7 +154,7 @@ namespace TrayReportApp.Services
                                 value = stringTablePart.SharedStringTable.ElementAt(int.Parse(value)).InnerText;
                         }
 
-                        if(cell.CellReference == "A" + rowNumber)
+                        if (cell.CellReference == "A" + rowNumber)
                         {
                             if (Enum.TryParse(value, true, out Purpose parsedPurpose))
                             {
@@ -287,5 +287,104 @@ namespace TrayReportApp.Services
             workbookPart.Workbook.Save();
             document.Dispose();
         }
+
+
+        public async Task ExportFilteredTableEntriesAsync(IEnumerable<CableTypeServiceModel> cableTypes)
+        {
+            SpreadsheetDocument document = SpreadsheetDocument.Create(@"C:\Users\TOKA\Desktop\CableTypesFilteredExport.xlsx", SpreadsheetDocumentType.Workbook);
+
+            WorkbookPart workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+
+            WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+            Sheets sheets = workbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+            Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Cable Types" };
+            sheets.Append(sheet);
+
+            SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>() ?? worksheetPart.Worksheet.AppendChild(new SheetData());
+
+            Row headerRow = new Row() { RowIndex = 1 };
+            sheetData.Append(headerRow);
+
+            string[] headers = { "Purpose", "Type", "Diameter", "Weight" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                Cell headerCell = new Cell() { CellReference = ((char)('A' + i)).ToString() + "1" };
+                headerCell.CellValue = new CellValue(headers[i]);
+                headerCell.DataType = new EnumValue<CellValues>(CellValues.String);
+                headerRow.Append(headerCell);
+            }
+
+            for (int i = 0; i < cableTypes.Count(); i++)
+            {
+                Row row = new Row() { RowIndex = (uint)(i + 2) }; // Start from row 2
+                sheetData.Append(row);
+
+                Cell cell = new Cell() { CellReference = "A" + (i + 2) };
+                cell.CellValue = new CellValue(cableTypes.ElementAt(i).Purpose);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "B" + (i + 2) };
+                cell.CellValue = new CellValue(cableTypes.ElementAt(i).Type);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "C" + (i + 2) };
+                cell.CellValue = new CellValue(cableTypes.ElementAt(i).Diameter.ToString());
+                cell.DataType = new EnumValue<CellValues>(CellValues.Number);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "D" + (i + 2) };
+                cell.CellValue = new CellValue(cableTypes.ElementAt(i).Weight.ToString());
+                cell.DataType = new EnumValue<CellValues>(CellValues.Number);
+                row.Append(cell);
+            }
+
+            TableDefinitionPart tableDefinitionPart = worksheetPart.AddNewPart<TableDefinitionPart>();
+            Table table = new Table()
+            {
+                Id = 1,
+                DisplayName = "CableTypes",
+                Name = "CableTypes",
+                Reference = "A1:D" + (cableTypes.Count() + 1) // Covers header + all data rows
+            };
+
+            AutoFilter autoFilter = new AutoFilter()
+            {
+                Reference = "A1:D" + (cableTypes.Count() + 1)
+            };
+
+            TableColumns tableColumns = new TableColumns() { Count = 4 };
+            tableColumns.Append(new TableColumn() { Id = 1, Name = "Purpose" });
+            tableColumns.Append(new TableColumn() { Id = 2, Name = "Type" });
+            tableColumns.Append(new TableColumn() { Id = 3, Name = "Diameter" });
+            tableColumns.Append(new TableColumn() { Id = 4, Name = "Weight" });
+
+            TableStyleInfo tableStyleInfo = new TableStyleInfo()
+            {
+                Name = "TableStyleLight8", // Built-in Excel style
+                ShowFirstColumn = false,
+                ShowLastColumn = false,
+                ShowRowStripes = true,
+                ShowColumnStripes = false
+            };
+
+            table.Append(autoFilter);
+            table.Append(tableColumns);
+            table.Append(tableStyleInfo);
+
+            tableDefinitionPart.Table = table;
+            tableDefinitionPart.Table.Save();
+
+            TableParts tableParts = worksheetPart.Worksheet.GetFirstChild<TableParts>() ?? worksheetPart.Worksheet.AppendChild(new TableParts());
+            tableParts.Append(new TablePart() { Id = worksheetPart.GetIdOfPart(tableDefinitionPart) });
+
+            workbookPart.Workbook.Save();
+            document.Dispose();
+        }
+        
     }
 }

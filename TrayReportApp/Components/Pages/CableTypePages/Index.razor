@@ -13,7 +13,7 @@
 <h1>Index</h1>
 
 <MudGrid Spacing="3" Justify="Justify.Center">
-    <MudItem >
+    <MudItem>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false" OnClick="@(() => AddCableTypeAsync())">Create New Cable Type</MudButton>
     </MudItem>
     <MudItem>
@@ -28,13 +28,16 @@
         </MudFileUpload>
     </MudItem>
     <MudItem>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SimCardDownload" DropShadow="false" OnClick="@(() => ExportTableAsync())">Download Report</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SimCardDownload" DropShadow="false" OnClick="@(() => ExportTableAsync())">Export Full Report</MudButton>
+    </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FilterList" DropShadow="false" OnClick="@(() => ExportFilteredTableAsync())">Export Filtered Report</MudButton>
     </MudItem>
 </MudGrid>
 
 <MudPaper Elevation="0" Class="pa-4">
-    <MudDataGrid T="CableTypeServiceModel" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true"
-                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted">
+    <MudDataGrid T="CableTypeServiceModel" @ref="dataGrid" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true" Striped="true"
+                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore">
         <Columns>
             <PropertyColumn Property="x => x.Purpose" Title="Purpose">
                 <EditTemplate>
@@ -47,8 +50,8 @@
                 </EditTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.Type" Title="Type" />
-            <PropertyColumn Property="x => x.Diameter" Title="Diameter" />
-            <PropertyColumn Property="x => x.Weight" Title="Weight" />
+            <PropertyColumn Property="x => x.Diameter" Title="Diameter [mm]" />
+            <PropertyColumn Property="x => x.Weight" Title="Weight [kg/m]" />
             <TemplateColumn Title="Actions">
                 <CellTemplate>
                     <MudTooltip Text="Delete">
@@ -60,8 +63,8 @@
     </MudDataGrid>
 </MudPaper>
 
-
 @code {
+    private MudDataGrid<CableTypeServiceModel> dataGrid = new MudDataGrid<CableTypeServiceModel>();
     private List<CableTypeServiceModel> Elements = new List<CableTypeServiceModel>();
     private List<string> Purposes = new List<string>();
     private MudFileUpload<IBrowserFile> _fileUpload;
@@ -69,11 +72,12 @@
     private Task ClearAsync()
         => _fileUpload?.ClearAsync() ?? Task.CompletedTask;
 
+    private IEnumerable<CableTypeServiceModel> FilteredItems { get; set; } = new List<CableTypeServiceModel>();
+
     protected override async Task OnInitializedAsync()
     {
         await ReloadDataAsync();
     }
-
 
     private async Task ReloadDataAsync()
     {
@@ -125,11 +129,11 @@
     {
         try
         {
-            await CableTypeService.UploadFromFileAsync(e.File);           
+            await CableTypeService.UploadFromFileAsync(e.File);
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);           
+            Snackbar.Add(ex.Message, Severity.Error);
         }
         await ClearAsync();
         await ReloadDataAsync();
@@ -137,7 +141,33 @@
 
     private async Task ExportTableAsync()
     {
-        await CableTypeService.ExportTableEntriesAsync();
-        Snackbar.Add("Table was exported successfully!", Severity.Success);
+        try
+        {
+            await CableTypeService.ExportTableEntriesAsync();
+            Snackbar.Add("Table was exported successfully!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ExportFilteredTableAsync()
+    {
+        await GetFilteredItems();
+        try
+        {
+            await CableTypeService.ExportFilteredTableEntriesAsync(FilteredItems);
+            Snackbar.Add("Table was exported successfully!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task GetFilteredItems()
+    {
+        FilteredItems = dataGrid.FilteredItems;
     }
 }
