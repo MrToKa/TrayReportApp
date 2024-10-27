@@ -1,0 +1,134 @@
+﻿@page "/cabletypes"
+
+@using TrayReportApp.Components.Pages.Dialogs
+@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ICableTypeService CableTypeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<MudGrid Spacing="3" Justify="Justify.Center">
+    <MudItem >
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false" OnClick="@(() => AddCableTypeAsync())">Create New Cable Type</MudButton>
+    </MudItem>
+    <MudItem>
+        <MudFileUpload @ref="@_fileUpload" T="IBrowserFile" OnFilesChanged="UploadFile" Accept=".xlsx">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Add Cable Types from file
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="0" Class="pa-4">
+    <MudDataGrid T="CableTypeServiceModel" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true"
+                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted">
+        <Columns>
+            <PropertyColumn Property="x => x.Purpose" Title="Purpose">
+                <EditTemplate>
+                    <MudSelect T="string" @bind-Value="context.Item.Purpose" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined" Label="Purpose">
+                        @foreach (var purpose in Purposes)
+                        {
+                            <MudSelectItem T="string" Value="@purpose">@purpose</MudSelectItem>
+                        }
+                    </MudSelect>
+                </EditTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Type" Title="Type" />
+            <PropertyColumn Property="x => x.Diameter" Title="Diameter" />
+            <PropertyColumn Property="x => x.Weight" Title="Weight" />
+            <TemplateColumn Title="Actions">
+                <CellTemplate>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteCableTypeAsync(context.Item.Id))" />
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+</MudPaper>
+
+
+@code {
+    private List<CableTypeServiceModel> Elements = new List<CableTypeServiceModel>();
+    private List<string> Purposes = new List<string>();
+    private MudFileUpload<IBrowserFile> _fileUpload;
+
+    private Task ClearAsync()
+        => _fileUpload?.ClearAsync() ?? Task.CompletedTask;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadDataAsync();
+    }
+
+
+    private async Task ReloadDataAsync()
+    {
+        Elements = await CableTypeService.GetCableTypesAsync();
+        Purposes = await CableTypeService.GetCablesPurposes();
+    }
+
+    private async void ItemHasBeenCommitted(CableTypeServiceModel item)
+    {
+        await CableTypeService.UpdateCableTypeAsync(item);
+    }
+
+    private async Task DeleteCableTypeAsync(int id)
+    {
+        DialogParameters parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.Title , "Delete Cable Type?" },
+            { x => x.Content, "Are you sure you want to delete this Cable Type?" },
+            { x => x.Result, "Cable Type was deleted!" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<DeleteDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await CableTypeService.DeleteCableTypeAsync(id);
+            await ReloadDataAsync();
+        }
+    }
+
+    private async Task AddCableTypeAsync()
+    {
+        DialogParameters parameters = new DialogParameters<AddCableTypeDialog>
+        {
+            { x => x.Title , "Add new Cable Type!" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<AddCableTypeDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await ReloadDataAsync();
+        }
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await CableTypeService.UploadFromFileAsync(e.File);           
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);           
+        }
+        await ClearAsync();
+        await ReloadDataAsync();
+    }
+}

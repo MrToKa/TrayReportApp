@@ -1,0 +1,63 @@
+﻿@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ISnackbar Snackbar
+@inject ICableTypeService CableTypeService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudSelect T="string" @bind-Value="CableType.Purpose" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined" Label="Purpose">
+            @foreach (var purpose in Purposes)
+            {
+                <MudSelectItem T="string" Value="@purpose">@purpose</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Type" @bind-Value="CableType.Type" />
+        <MudTextField T="double" Variant="Variant.Outlined" Label="Diameter" @bind-Value="CableType.Diameter" />
+        <MudTextField T="double" Variant="Variant.Outlined" Label="Weight" @bind-Value="CableType.Weight" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveCableTypeAsync">Save</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    public CableTypeServiceModel CableType { get; set; } = new CableTypeServiceModel();
+
+    private List<string> Purposes = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Purposes = await CableTypeService.GetCablesPurposes();
+    }
+
+    private async Task SaveCableTypeAsync()
+    {
+        try
+        {
+            await CableTypeService.CreateCableTypeAsync(CableType);
+            Snackbar.Add("Cable Type saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding Cable Type: {ex.Message}", Severity.Error);
+        }
+    }
+}

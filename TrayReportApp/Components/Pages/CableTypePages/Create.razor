@@ -1,0 +1,104 @@
+﻿@page "/cabletypes/create"
+
+@using Microsoft.EntityFrameworkCore
+@using TrayReportApp.Models
+@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ICableTypeService CableTypeService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+@* <MudItem xs="12" sm="7">
+    <MudPaper Class="pa-4">
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudSelect T="string" Label="Purpose"  AdornmentColor="Color.Secondary">
+                @foreach (var purpose in Purposes)
+                {
+                    <MudSelectItem Value="@purpose" />
+                }
+            </MudSelect>
+            <MudTextField T="string" Label="Type" Required="true" RequiredError="Type is required!" />
+            <MudTextField T="string" Label="Diameter" Required="true" RequiredError="Diameter is required!" />
+            <MudTextField T="string" Label="Weight" Required="true" RequiredError="Weight is required!" />
+        </MudForm>
+    </MudPaper>
+    <MudPaper Class="pa-4 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false" OnClick="@(()=>AddCableType())">Validate</MudButton>
+    </MudPaper>
+</MudItem> *@
+
+<h1>Create</h1>
+
+<h2>CableType</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="CableType" OnValidSubmit="AddCableType" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            @*             <div class="mb-3">
+            <label for="purpose" class="form-label">Purpose:</label>
+            <InputText id="purpose" @bind-Value="CableType.Purpose" class="form-control" />
+            <ValidationMessage For="() => CableType.Purpose" class="text-danger" />
+            </div> *@
+            <div class="mb-3">
+                <label for="purpose" class="form-label">Purpose:</label>
+                <InputSelect id="purpose" @bind-Value="CableType.Purpose" class="form-control">
+                    @foreach (var purpose in Purposes)
+                    {
+                        <option value="@purpose">@purpose</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => CableType.Purpose" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="type" class="form-label">Type:</label>
+                <InputText id="type" @bind-Value="CableType.Type" class="form-control" />
+                <ValidationMessage For="() => CableType.Type" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="diameter" class="form-label">Diameter:</label>
+                <InputNumber id="diameter" @bind-Value="CableType.Diameter" class="form-control" />
+                <ValidationMessage For="() => CableType.Diameter" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="weight" class="form-label">Weight:</label>
+                <InputNumber id="weight" @bind-Value="CableType.Weight" class="form-control" />
+                <ValidationMessage For="() => CableType.Weight" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/cabletypes">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private CableTypeServiceModel CableType { get; set; } = new();
+
+    public List<string> Purposes { get; set; }
+
+    bool success;
+    MudForm form;
+
+    private async Task AddCableType()
+    {
+        await CableTypeService.CreateCableTypeAsync(CableType);
+        NavigationManager.NavigateTo("/cabletypes");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        form = new MudForm();
+        Purposes = await CableTypeService.GetCablesPurposes();
+    }
+
+
+
+
+}
