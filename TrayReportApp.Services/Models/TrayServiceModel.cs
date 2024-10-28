@@ -4,9 +4,8 @@
     {
         public TrayServiceModel() 
         {
-            Cables = new List<TrayCableServiceModel>();
+            Cables = new List<CableServiceModel>();
         }
-
         public int Id { get; set; }
         public string Name { get; set; }
         public string Type { get; set; }
@@ -19,6 +18,6 @@
         public double? FreeSpace { get; set; }
         public double? FreePercentage { get; set; }
         public int SupportId { get; set; }
-        public List<TrayCableServiceModel> Cables { get; set; }
+        public List<CableServiceModel> Cables { get; set; }
     }
 }

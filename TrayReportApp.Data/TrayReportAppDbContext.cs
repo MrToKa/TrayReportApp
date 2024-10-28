@@ -35,13 +35,9 @@ options => options.UseAdminDatabase("postgres"));
         public DbSet<CableType> CableTypes { get; set; }
         public DbSet<Support> Supports { get; set; }
         public DbSet<Tray> Trays { get; set; }
-        public DbSet<TrayCable> TraysCables { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<TrayCable>()
-                .HasKey(tc => new { tc.CableId, tc.TrayId });
-
             base.OnModelCreating(modelBuilder);
         }
     }

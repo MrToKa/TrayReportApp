@@ -14,12 +14,15 @@ namespace TrayReportApp.Services
     {
         private readonly ITrayReportAppDbRepository _repo;
         private readonly ISupportService _supportService;
+        private readonly ICableService _cableService;
 
         public TrayService(ITrayReportAppDbRepository repo,
-            ISupportService supportService)
+            ISupportService supportService,
+            ICableService cableService)
         {
             _repo = repo;
             _supportService = supportService;
+            _cableService = cableService;
         }
 
         public async Task<TrayServiceModel> CreateTrayAsync(TrayServiceModel tray)
@@ -31,8 +34,8 @@ namespace TrayReportApp.Services
                 throw new Exception("Tray already exists");
             }
 
-            int supportId = await _supportService.GetSupportsAsync()
-                .ContinueWith(t => t.Result.FirstOrDefault().Id);
+            List<SupportServiceModel> supportsId = await _supportService.GetSupportsAsync();
+
 
             Tray newTray = new Tray
             {
@@ -43,10 +46,7 @@ namespace TrayReportApp.Services
                 Length = tray.Length,
                 Weight = tray.Weight,
                 Purpose = tray.Purpose,
-                SupportsCount = tray.SupportsCount,
-                FreeSpace = tray.FreeSpace,
-                FreePercentage = tray.FreePercentage,
-                SupportId = supportId
+                SupportId = await GetSupportTypeAsync(tray.Type)
             };
 
 
@@ -62,9 +62,6 @@ namespace TrayReportApp.Services
                 Length = newTray.Length,
                 Weight = newTray.Weight,
                 Purpose = newTray.Purpose,
-                SupportsCount = newTray.SupportsCount,
-                FreeSpace = newTray.FreeSpace,
-                FreePercentage = newTray.FreePercentage,
                 SupportId = newTray.SupportId
             };
         }
@@ -81,6 +78,32 @@ namespace TrayReportApp.Services
             await _repo.SaveChangesAsync();
         }
 
+        public async Task<List<CableServiceModel>> GetCables(string trayName)
+        {
+            var cables = await _cableService.GetCablesAsync();
+            return cables.Where(c => c.Routing.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains(trayName)).ToList();
+        }
+
+        public int CalculateSupportsCount(Tray tray)
+        {
+            var traySupportDistance = tray.Supports.Distance;
+            var trayLength = tray.Length;
+
+            if (trayLength <= 0)
+            {
+                return 0;
+            }
+
+            int supportsCount = Math.Max(2, (int)Math.Ceiling((decimal)trayLength / (decimal)traySupportDistance));
+
+            if (trayLength > traySupportDistance * 1.2)
+            {
+                supportsCount++;
+            }
+
+            return supportsCount;
+        }
+
         public async Task<TrayServiceModel> GetTrayAsync(int id)
         {
             var tray = await _repo.GetByIdAsync<Tray>(id);
@@ -88,6 +111,8 @@ namespace TrayReportApp.Services
             {
                 throw new Exception("Tray not found");
             }
+
+            var trayCables = await GetCables(tray.Name);
 
             return new TrayServiceModel
             {
@@ -99,15 +124,11 @@ namespace TrayReportApp.Services
                 Length = tray.Length,
                 Weight = tray.Weight,
                 Purpose = tray.Purpose,
-                SupportsCount = tray.SupportsCount,
-                FreeSpace = tray.FreeSpace,
-                FreePercentage = tray.FreePercentage,
+                SupportsCount = CalculateSupportsCount(tray),
+                //FreeSpace = tray.FreeSpace,
+                //FreePercentage = tray.FreePercentage,
                 SupportId = tray.SupportId,
-                Cables = tray.Cables.Select(c => new TrayCableServiceModel
-                {
-                    CableId = c.Id,
-                    TrayId = tray.Id
-                }).ToList()
+                Cables = trayCables
             };
         }
 
@@ -125,15 +146,10 @@ namespace TrayReportApp.Services
                 Length = t.Length,
                 Weight = t.Weight,
                 Purpose = t.Purpose,
-                SupportsCount = t.SupportsCount,
-                FreeSpace = t.FreeSpace,
-                FreePercentage = t.FreePercentage,
-                SupportId = t.SupportId,
-                Cables = t.Cables.Select(c => new TrayCableServiceModel
-                {
-                    CableId = c.Id,
-                    TrayId = t.Id
-                }).ToList()
+                SupportsCount = CalculateSupportsCount(t),
+                //FreeSpace = t.FreeSpace,
+                //FreePercentage = t.FreePercentage,
+                SupportId = t.SupportId
             }).ToList();
         }
 
@@ -153,10 +169,12 @@ namespace TrayReportApp.Services
             existingTray.Length = tray.Length;
             existingTray.Weight = tray.Weight;
             existingTray.Purpose = tray.Purpose;
-            existingTray.SupportsCount = tray.SupportsCount;
-            existingTray.FreeSpace = tray.FreeSpace;
-            existingTray.FreePercentage = tray.FreePercentage;
-            existingTray.SupportId = tray.SupportId;
+
+            if(existingTray.Type != tray.Type)
+            {
+                existingTray.Type = tray.Type;
+                existingTray.SupportId = await GetSupportTypeAsync(tray.Type);
+            }
 
             await _repo.SaveChangesAsync();
 
@@ -171,9 +189,6 @@ namespace TrayReportApp.Services
                 Weight = existingTray.Weight,
                 Purpose = existingTray.Purpose,
                 SupportsCount = existingTray.SupportsCount,
-                FreeSpace = existingTray.FreeSpace,
-                FreePercentage = existingTray.FreePercentage,
-                SupportId = existingTray.SupportId
             };
         }
 
@@ -273,9 +288,9 @@ namespace TrayReportApp.Services
                         }
                     }
 
-                    var trayWithSupport = AddSupport(tray);
+                    tray.SupportId = GetSupportTypeAsync(tray.Type).Result;
 
-                    trays.Add(await trayWithSupport);
+                    trays.Add(tray);
                 }
 
                 foreach (var tray in trays)
@@ -285,26 +300,22 @@ namespace TrayReportApp.Services
             }
         }
 
-        private async Task<TrayServiceModel> AddSupport(TrayServiceModel tray)
+        private async Task<int> GetSupportTypeAsync(string trayType)
         {
             var supports = await _supportService.GetSupportsAsync();
 
-            if (tray.Type.StartsWith("KL"))
-            {
-                var support = supports.Where(s => s.Name.Contains("KL")).FirstOrDefault();
-                tray.SupportId = support.Id;
-            }
-            else if (tray.Type.StartsWith("WSL"))
-            {
-                var support = supports.Where(s => s.Name.Contains("WSL")).FirstOrDefault();
-                tray.SupportId = support.Id;
-            }
-            else
+            var support = trayType.StartsWith("KL") ? 
+                supports.FirstOrDefault(s => s.Name.Contains("KL")) :
+                          trayType.StartsWith("WSL") ? 
+                          supports.FirstOrDefault(s => s.Name.Contains("WSL")) :
+                          null;
+
+            if (support == null)
             {
                 throw new Exception("Support not found");
             }
 
-            return tray;
+            return support.Id;
         }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TrayReportApp.Data;
@@ -11,9 +12,11 @@ using TrayReportApp.Data;
 namespace TrayReportApp.Data.Migrations
 {
     [DbContext(typeof(TrayReportAppDbContext))]
-    partial class TrayReportAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241028200355_FixedCablesRouting")]
+    partial class FixedCablesRouting
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -87,8 +90,8 @@ namespace TrayReportApp.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<double>("Distance")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Distance")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -98,8 +101,8 @@ namespace TrayReportApp.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("Weight")
-                        .HasColumnType("double precision");
+                    b.Property<int>("Weight")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

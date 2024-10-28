@@ -9,6 +9,7 @@ namespace TrayReportApp.Models
         {
             Cables = new List<Cable>();
         }
+
         [Key]
         public int Id { get; set; }
         public Purpose Purpose { get; set; }

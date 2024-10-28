@@ -1,0 +1,54 @@
+﻿@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ISnackbar Snackbar
+@inject ISupportService SupportService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Name" @bind-Value="Support.Name" />
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Type" @bind-Value="Support.Type" />
+        <MudTextField T="double" Variant="Variant.Outlined" Label="Weight" @bind-Value="Support.Weight" />
+        <MudTextField T="double" Variant="Variant.Outlined" Label="Distance" @bind-Value="Support.Distance" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveSupportAsync">Save</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    public SupportServiceModel Support { get; set; } = new SupportServiceModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+    }
+
+    private async Task SaveSupportAsync()
+    {
+        try
+        {
+            await SupportService.CreateSupportAsync(Support);
+            Snackbar.Add("Support saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding Support: {ex.Message}", Severity.Error);
+        }
+    }
+}

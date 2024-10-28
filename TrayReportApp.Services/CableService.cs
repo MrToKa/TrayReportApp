@@ -32,6 +32,7 @@ namespace TrayReportApp.Services
                 Tag = cable.Tag,
                 FromLocation = cable.FromLocation,
                 ToLocation = cable.ToLocation,
+                Routing = cable.Routing,
             };
 
             if (cable.Type.HasValue)
@@ -41,8 +42,6 @@ namespace TrayReportApp.Services
 
             await _repo.AddAsync(newCable);
             await _repo.SaveChangesAsync();
-            await RoutingMapping(cable, newCable);
-            await _repo.SaveChangesAsync();
 
             return new CableServiceModel
             {
@@ -51,42 +50,8 @@ namespace TrayReportApp.Services
                 Type = newCable.Type,
                 FromLocation = newCable.FromLocation,
                 ToLocation = newCable.ToLocation,
-                Trays = cable.Trays
+                Routing = cable.Routing
             };
-        }
-
-        private async Task RoutingMapping(CableServiceModel cable, Cable newCable)
-        {
-            if (!string.IsNullOrEmpty(cable.Trays))
-            {
-                var trayNames = cable.Trays
-                    .Split('/')
-                    .Select(name => name.Trim())
-                    .ToList();
-
-                var trays = await _repo.All<Tray>()
-                    .Where(t => trayNames.Contains(t.Name))
-                    .ToListAsync();
-
-                var foundTrayNames = trays.Select(t => t.Name).ToList();
-                var missingTrayNames = trayNames.Except(foundTrayNames).ToList();
-
-                if (missingTrayNames.Any())
-                {
-                    throw new Exception($"The following trays were not found: {string.Join(", ", missingTrayNames)}");
-                }
-
-
-                foreach (var tray in trays)
-                {
-                    var trayCableMapping = new TrayCable
-                    {
-                        TrayId = tray.Id,
-                        CableId = newCable.Id
-                    };
-                    await _repo.AddAsync(trayCableMapping);
-                }
-            }
         }
 
         public async Task DeleteCableAsync(int id)
@@ -104,7 +69,6 @@ namespace TrayReportApp.Services
         public async Task<CableServiceModel> GetCableAsync(int id)
         {
             var cable = await _repo.All<Cable>()
-                .Include(c => c.Routing)
                 .Include(c => c.CableType)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
@@ -113,8 +77,6 @@ namespace TrayReportApp.Services
                 throw new Exception("Cable not found");
             }
 
-            var trayNames = cable.Routing.Select(t => t.Name).ToList();
-
             var cableServiceModel = new CableServiceModel
             {
                 Id = cable.Id,
@@ -122,17 +84,15 @@ namespace TrayReportApp.Services
                 Type = cable.Type,
                 FromLocation = cable.FromLocation,
                 ToLocation = cable.ToLocation,
-                Trays = string.Join("/", trayNames)
+                Routing = cable.Routing
             };
 
             return cableServiceModel;
         }
 
-
         public async Task<List<CableServiceModel>> GetCablesAsync()
         {
             var cables = await _repo.All<Cable>()
-                .Include(c => c.Routing)
                 .Include(c => c.CableType)
                 .ToListAsync();
 
@@ -143,7 +103,7 @@ namespace TrayReportApp.Services
                 Type = c.Type,
                 FromLocation = c.FromLocation,
                 ToLocation = c.ToLocation,
-                Trays = string.Join("/", c.Routing.Select(t => t.Name))
+                Routing = c.Routing
             }).ToList();
         }
 
@@ -159,13 +119,13 @@ namespace TrayReportApp.Services
             cableToUpdate.Tag = cable.Tag;
             cableToUpdate.FromLocation = cable.FromLocation;
             cableToUpdate.ToLocation = cable.ToLocation;
+            cableToUpdate.Routing = cable.Routing;
 
             if (cable.Type.HasValue)
             {
                 cableToUpdate.Type = cable.Type.Value;
             }
 
-            await RoutingMapping(cable, cableToUpdate);
             await _repo.SaveChangesAsync();
         }
 
@@ -223,7 +183,7 @@ namespace TrayReportApp.Services
                         }
                         else if (cell.CellReference == "E" + rowNumber)
                         {
-                            cable.Trays = value;
+                            cable.Routing = value;
                         }
                     }
 

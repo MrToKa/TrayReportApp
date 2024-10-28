@@ -7,6 +7,6 @@
         public int? Type { get; set; }
         public string? FromLocation { get; set; }
         public string? ToLocation { get; set; }
-        public string? Trays { get; set; }
+        public string? Routing { get; set; }
     }
 }

@@ -21,7 +21,7 @@ namespace TrayReportApp.Services
 
             if (supportExists)
             {
-                throw new Exception("Support already exists");
+                return null;
             }
 
             var newSupport = new Support

@@ -5,11 +5,6 @@ namespace TrayReportApp.Models
 {
     public class Tray
     {
-        public Tray()
-        {
-            Cables = new List<Cable>();
-        }
-
         [Key]
         public int Id { get; set; }
         public string Name { get; set; }
@@ -25,6 +20,5 @@ namespace TrayReportApp.Models
         [ForeignKey(nameof(Support))]
         public int SupportId { get; set; }
         public Support Supports { get; set; }
-        public List<Cable> Cables { get; set; }
     }
 }
