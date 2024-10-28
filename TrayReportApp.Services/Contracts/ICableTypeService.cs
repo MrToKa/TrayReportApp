@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
-using TrayReportApp.Models;
 using TrayReportApp.Services.Models;
 
 namespace TrayReportApp.Services.Contracts

@@ -24,7 +24,7 @@ namespace TrayReportApp.Services
 
             if (cableExists)
             {
-                throw new Exception("Cable already exists");
+                return null;
             }
 
             Cable newCable = new Cable
@@ -235,6 +235,16 @@ namespace TrayReportApp.Services
                     await CreateCableAsync(cable);
                 }
             }
+        }
+
+        public Task ExportTableEntriesAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ExportFilteredTableEntriesAsync(IEnumerable<CableServiceModel> cables)
+        {
+            throw new NotImplementedException();
         }
     }
 }

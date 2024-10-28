@@ -16,5 +16,9 @@ namespace TrayReportApp.Services.Contracts
         Task UpdateCableAsync(CableServiceModel cable);
 
         Task UploadFromFileAsync(IBrowserFile file);
+
+        Task ExportTableEntriesAsync();
+
+        Task ExportFilteredTableEntriesAsync(IEnumerable<CableServiceModel> cables);
     }
 }

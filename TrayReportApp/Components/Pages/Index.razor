@@ -14,7 +14,7 @@
 
 <MudGrid Spacing="3" Justify="Justify.Center">
     <MudItem>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="false" OnClick="@(() => AddCableTypeAsync())">Create New Cable Type</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" DropShadow="false" OnClick="@(() => AddCableTypeAsync())">Create New Cable Type</MudButton>
     </MudItem>
     <MudItem>
         <MudFileUpload @ref="@_fileUpload" T="IBrowserFile" OnFilesChanged="UploadFile" Accept=".xlsx">
