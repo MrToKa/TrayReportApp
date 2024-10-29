@@ -6,7 +6,7 @@ namespace TrayReportApp.Services.Contracts
     public interface ISupportService
     {
         Task<List<SupportServiceModel>> GetSupportsAsync();
-        Task<SupportServiceModel> GetSupportAsync(int id);
+        Task<SupportServiceModel> GetSupportAsync(string type);
         Task<SupportServiceModel> CreateSupportAsync(SupportServiceModel support);
         Task<SupportServiceModel> UpdateSupportAsync(SupportServiceModel support);
         Task DeleteSupportAsync(int id);

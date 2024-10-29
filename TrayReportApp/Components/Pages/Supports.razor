@@ -88,5 +88,6 @@
     private async Task ItemHasBeenCommitted(SupportServiceModel item)
     {
         await SupportService.UpdateSupportAsync(item);
+        Snackbar.Add("Support was updated!", Severity.Success);
     }
 }

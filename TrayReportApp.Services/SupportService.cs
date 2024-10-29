@@ -46,7 +46,7 @@ namespace TrayReportApp.Services
 
         public async Task DeleteSupportAsync(int id)
         {
-            var support = this._repo.All<Support>().FirstOrDefault(s => s.Id == id);
+            var support = await _repo.All<Support>().FirstOrDefaultAsync(s => s.Id == id);
             if (support == null)
             {
                 throw new Exception("Support not found");
@@ -56,12 +56,13 @@ namespace TrayReportApp.Services
             await _repo.SaveChangesAsync();
         }
 
-        public async Task<SupportServiceModel> GetSupportAsync(int id)
+        public async Task<SupportServiceModel> GetSupportAsync(string type)
         {
-            var support = await _repo.GetByIdAsync<Support>(id);
+            var support = await _repo.All<Support>()
+                .FirstOrDefaultAsync(s => s.Type == type);
             if (support == null)
             {
-                throw new Exception("Support not found");
+                return null;
             }
 
             return new SupportServiceModel
@@ -72,7 +73,6 @@ namespace TrayReportApp.Services
                 Weight = support.Weight,
                 Distance = support.Distance
             };
-
         }
 
         public async Task<List<SupportServiceModel>> GetSupportsAsync()

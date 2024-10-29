@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TrayReportApp.Data;
@@ -11,9 +12,11 @@ using TrayReportApp.Data;
 namespace TrayReportApp.Data.Migrations
 {
     [DbContext(typeof(TrayReportAppDbContext))]
-    partial class TrayReportAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241029183406_AddedTrayTypeEntity")]
+    partial class AddedTrayTypeEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -162,8 +165,8 @@ namespace TrayReportApp.Data.Migrations
                     b.Property<int>("Height")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("Length")
-                        .HasColumnType("integer");
+                    b.Property<double?>("Length")
+                        .HasColumnType("double precision");
 
                     b.Property<int>("SupportId")
                         .HasColumnType("integer");

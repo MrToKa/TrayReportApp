@@ -35,6 +35,7 @@ options => options.UseAdminDatabase("postgres"));
         public DbSet<CableType> CableTypes { get; set; }
         public DbSet<Support> Supports { get; set; }
         public DbSet<Tray> Trays { get; set; }
+        public DbSet<TrayType> TrayTypes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

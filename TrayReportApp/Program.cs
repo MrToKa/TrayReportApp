@@ -36,6 +36,7 @@ namespace TrayReportApp
             builder.Services.AddScoped<ITrayService, TrayService>();
             builder.Services.AddScoped<ICableTypeService, CableTypeService>();
             builder.Services.AddScoped<ICableService, CableService>();
+            builder.Services.AddScoped<ITrayTypeService, TrayTypeService>();
 
             var app = builder.Build();
 

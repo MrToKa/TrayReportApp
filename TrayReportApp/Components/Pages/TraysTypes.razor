@@ -1,0 +1,126 @@
+﻿@page "/traystypes"
+
+@using TrayReportApp.Components.Pages.Dialogs
+@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ITrayTypeService TrayTypeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ISupportService SupportService
+
+<PageTitle>Trays Types</PageTitle>
+
+<h1>Trays Types</h1>
+
+<MudGrid Spacing="3" Justify="Justify.Center">
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" DropShadow="false" OnClick="@(() => AddTrayTypeAsync())">Create New Tray Type</MudButton>
+    </MudItem>
+@*     <MudItem>
+        <MudFileUpload @ref="@_fileUpload" T="IBrowserFile" OnFilesChanged="UploadFile" Accept=".xlsx">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Add Tray Types from file
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudItem> *@
+</MudGrid>
+
+<MudPaper Elevation="0" Class="pa-4">
+    <MudDataGrid T="TrayTypeServiceModel" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true" Striped="true"
+                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore">
+        <Columns>
+            <PropertyColumn Property="x => x.Type" Title="Type" />
+            <PropertyColumn Property="x => x.Width" Title="Width [mm]" />
+            <PropertyColumn Property="x => x.Height" Title="Height [mm]" />
+            <PropertyColumn Property="x => x.Length" Title="Length [mm]" />
+            <PropertyColumn Property="x => x.Weight" Title="Weight [kg/m]" />
+            <TemplateColumn Title="Supports type">
+                <CellTemplate>
+                    @GetSupportName(context.Item.SupportId)
+                </CellTemplate>
+                <EditTemplate>
+                    <MudSelect T="int" @bind-Value="context.Item.SupportId" Variant="Variant.Outlined" Dense="true" Label="Select Support Type">
+                        @foreach (var support in Supports)
+                        {
+                            <MudSelectItem Value="@support.Id">@support.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </EditTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Actions" Editable="false">
+                <CellTemplate>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteTrayTypeAsync(context.Item.Id))" />
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+</MudPaper>
+
+@code{
+    private List<TrayTypeServiceModel> Elements { get; set;}
+    private List<SupportServiceModel> Supports { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Supports = await SupportService.GetSupportsAsync();
+        await ReloadDataAsync();
+    }
+
+    private async Task ReloadDataAsync()
+    {
+        Elements = await TrayTypeService.GetTrayTypesAsync();
+    }
+
+    private async Task AddTrayTypeAsync()
+    {
+        DialogParameters parameters = new DialogParameters<AddTrayTypeDialog>
+        {
+            { x => x.Title , "Add new Tray Type!" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<AddTrayTypeDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await ReloadDataAsync();
+        }
+    }
+
+    private async Task DeleteTrayTypeAsync(int id)
+    {
+        DialogParameters parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.Title , "Delete Tray Type?" },
+            { x => x.Content, "Are you sure you want to delete this Tray Type?" },
+            { x => x.Result, "Tray Type was deleted!" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<DeleteDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await TrayTypeService.DeleteTrayTypeAsync(id);
+            await ReloadDataAsync();
+        }
+    }
+
+    private async Task ItemHasBeenCommitted(TrayTypeServiceModel item)
+    {
+        await TrayTypeService.UpdateTrayTypeAsync(item);
+        Snackbar.Add("Tray Type updated", Severity.Success);
+    }
+
+    private string GetSupportName(int supportId)
+    {
+        return Supports.FirstOrDefault(s => s.Id == supportId)?.Name ?? "Unknown";
+    }
+}

@@ -1,0 +1,68 @@
+﻿@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ISnackbar Snackbar
+@inject ITrayTypeService TrayTypeService
+@inject ISupportService SupportService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Type" @bind-Value="TrayType.Type" />
+        <MudTextField T="int" Variant="Variant.Outlined" Label="Width" @bind-Value="TrayType.Width" />
+        <MudTextField T="int" Variant="Variant.Outlined" Label="Height" @bind-Value="TrayType.Height" />
+        <MudTextField T="int?" Variant="Variant.Outlined" Label="Length" @bind-Value="TrayType.Length" />
+        <MudTextField T="double" Variant="Variant.Outlined" Label="Weight" @bind-Value="TrayType.Weight" />
+        <MudSelect T="int" Label="Supports type" @bind-Value="TrayType.SupportId">
+            @foreach (var support in Supports)
+            {
+                <MudSelectItem Value="@support.Id">@support.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveTrayTypeAsync">Save</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    public TrayTypeServiceModel TrayType { get; set; } = new TrayTypeServiceModel();
+    public List<SupportServiceModel> Supports { get; set; } = new List<SupportServiceModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Supports = await SupportService.GetSupportsAsync();
+
+        if (Supports.Any())
+        {
+            TrayType.SupportId = Supports.First().Id;
+        }
+    }
+
+    private async Task SaveTrayTypeAsync()
+    {
+        try
+        {
+            await TrayTypeService.CreateTrayTypeAsync(TrayType);
+            Snackbar.Add("Tray Type saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding Tray Type: {ex.Message}", Severity.Error);
+        }
+    }
+}

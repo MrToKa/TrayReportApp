@@ -48,7 +48,6 @@ namespace TrayReportApp.Services
 
             return cableType;
         }
-
         public async Task DeleteCableTypeAsync(int id)
         {
             var cableType = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Id == id);
@@ -61,7 +60,6 @@ namespace TrayReportApp.Services
             await _repo.DeleteAsync<CableType>(cableType.Id);
             await _repo.SaveChangesAsync();
         }
-
         public async Task<CableTypeServiceModel> GetCableTypeAsync(int id)
         {
             var cableType = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Id == id);
@@ -80,7 +78,6 @@ namespace TrayReportApp.Services
                 Weight = cableType.Weight
             };
         }
-
         public async Task<List<CableTypeServiceModel>> GetCableTypesAsync()
         {
             return await _repo.All<CableType>()
@@ -94,7 +91,6 @@ namespace TrayReportApp.Services
                 })
                 .ToListAsync();
         }
-
         public async Task<CableTypeServiceModel> UpdateCableTypeAsync(CableTypeServiceModel cableType)
         {
             var existingCableType = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Id == cableType.Id);
@@ -116,7 +112,6 @@ namespace TrayReportApp.Services
 
             return cableType;
         }
-
         public async Task UploadFromFileAsync(IBrowserFile file)
         {
             List<CableTypeServiceModel> cableTypes = new List<CableTypeServiceModel>();
@@ -184,12 +179,10 @@ namespace TrayReportApp.Services
                 }
             }
         }
-
         public async Task<List<string>> GetCablesPurposes()
         {
             return Enum.GetNames(typeof(Purpose)).ToList();
         }
-
         public async Task ExportTableEntriesAsync()
         {
             SpreadsheetDocument document = SpreadsheetDocument.Create(@"C:\Users\TOKA\Desktop\CableTypesExport.xlsx", SpreadsheetDocumentType.Workbook);
@@ -287,8 +280,6 @@ namespace TrayReportApp.Services
             workbookPart.Workbook.Save();
             document.Dispose();
         }
-
-
         public async Task ExportFilteredTableEntriesAsync(IEnumerable<CableTypeServiceModel> cableTypes)
         {
             SpreadsheetDocument document = SpreadsheetDocument.Create(@"C:\Users\TOKA\Desktop\CableTypesFilteredExport.xlsx", SpreadsheetDocumentType.Workbook);
@@ -384,7 +375,6 @@ namespace TrayReportApp.Services
 
             workbookPart.Workbook.Save();
             document.Dispose();
-        }
-        
+        }        
     }
 }

@@ -31,22 +31,19 @@ namespace TrayReportApp.Services
 
             if (trayExists)
             {
-                throw new Exception("Tray already exists");
+                return null;
             }
 
             List<SupportServiceModel> supportsId = await _supportService.GetSupportsAsync();
-
 
             Tray newTray = new Tray
             {
                 Name = tray.Name,
                 Type = tray.Type,
-                Width = tray.Width,
-                Height = tray.Height,
                 Length = tray.Length,
                 Weight = tray.Weight,
                 Purpose = tray.Purpose,
-                SupportId = await GetSupportTypeAsync(tray.Type)
+                TrayTypeId = tray.TrayTypeId,
             };
 
 
@@ -57,12 +54,10 @@ namespace TrayReportApp.Services
             {
                 Name = newTray.Name,
                 Type = newTray.Type,
-                Width = newTray.Width,
-                Height = newTray.Height,
                 Length = newTray.Length,
                 Weight = newTray.Weight,
                 Purpose = newTray.Purpose,
-                SupportId = newTray.SupportId
+                TrayTypeId = tray.TrayTypeId,
             };
         }
 
@@ -84,25 +79,25 @@ namespace TrayReportApp.Services
             return cables.Where(c => c.Routing.Split('/', StringSplitOptions.RemoveEmptyEntries).Contains(trayName)).ToList();
         }
 
-        public int CalculateSupportsCount(Tray tray)
-        {
-            var traySupportDistance = tray.Supports.Distance;
-            var trayLength = tray.Length;
+        //public int CalculateSupportsCount(Tray tray)
+        //{
+        //    var traySupportDistance = tray.Supports.Distance;
+        //    var trayLength = tray.Length;
 
-            if (trayLength <= 0)
-            {
-                return 0;
-            }
+        //    if (trayLength <= 0)
+        //    {
+        //        return 0;
+        //    }
 
-            int supportsCount = Math.Max(2, (int)Math.Ceiling((decimal)trayLength / (decimal)traySupportDistance));
+        //    int supportsCount = Math.Max(2, (int)Math.Ceiling((decimal)trayLength / (decimal)traySupportDistance));
 
-            if (trayLength > traySupportDistance * 1.2)
-            {
-                supportsCount++;
-            }
+        //    if (trayLength > traySupportDistance * 1.2)
+        //    {
+        //        supportsCount++;
+        //    }
 
-            return supportsCount;
-        }
+        //    return supportsCount;
+        //}
 
         public async Task<TrayServiceModel> GetTrayAsync(int id)
         {
@@ -119,15 +114,12 @@ namespace TrayReportApp.Services
                 Id = tray.Id,
                 Name = tray.Name,
                 Type = tray.Type,
-                Width = tray.Width,
-                Height = tray.Height,
                 Length = tray.Length,
                 Weight = tray.Weight,
                 Purpose = tray.Purpose,
-                SupportsCount = CalculateSupportsCount(tray),
+                TrayTypeId = tray.TrayTypeId,
                 //FreeSpace = tray.FreeSpace,
                 //FreePercentage = tray.FreePercentage,
-                SupportId = tray.SupportId,
                 Cables = trayCables
             };
         }
@@ -141,15 +133,12 @@ namespace TrayReportApp.Services
                 Id = t.Id,
                 Name = t.Name,
                 Type = t.Type,
-                Width = t.Width,
-                Height = t.Height,
                 Length = t.Length,
                 Weight = t.Weight,
                 Purpose = t.Purpose,
-                SupportsCount = CalculateSupportsCount(t),
+                TrayTypeId = t.TrayTypeId,
                 //FreeSpace = t.FreeSpace,
                 //FreePercentage = t.FreePercentage,
-                SupportId = t.SupportId
             }).ToList();
         }
 
@@ -159,22 +148,21 @@ namespace TrayReportApp.Services
 
             if (existingTray == null)
             {
-                throw new Exception("Tray not found");
+                return null;
             }
 
             existingTray.Name = tray.Name;
             existingTray.Type = tray.Type;
-            existingTray.Width = tray.Width;
-            existingTray.Height = tray.Height;
             existingTray.Length = tray.Length;
             existingTray.Weight = tray.Weight;
             existingTray.Purpose = tray.Purpose;
+            existingTray.TrayTypeId = tray.TrayTypeId;
 
-            if(existingTray.Type != tray.Type)
-            {
-                existingTray.Type = tray.Type;
-                existingTray.SupportId = await GetSupportTypeAsync(tray.Type);
-            }
+            //if(existingTray.Type != tray.Type)
+            //{
+            //    existingTray.Type = tray.Type;
+            //    existingTray.SupportId = await GetSupportTypeAsync(tray.Type);
+            //}
 
             await _repo.SaveChangesAsync();
 
@@ -183,11 +171,10 @@ namespace TrayReportApp.Services
                 Id = existingTray.Id,
                 Name = existingTray.Name,
                 Type = existingTray.Type,
-                Width = existingTray.Width,
-                Height = existingTray.Height,
                 Length = existingTray.Length,
                 Weight = existingTray.Weight,
                 Purpose = existingTray.Purpose,
+                TrayTypeId = tray.TrayTypeId,
                 SupportsCount = existingTray.SupportsCount,
             };
         }
@@ -240,55 +227,19 @@ namespace TrayReportApp.Services
                         }
                         else if (cell.CellReference == "C" + rowNumber)
                         {
-                            if (value == null || value == string.Empty)
-                            {
-                                tray.Width = null;
-                            }
-                            else
-                            {
-                                tray.Width = int.Parse(value);
-                            }
+                            tray.Length = double.Parse(value);
                         }
                         else if (cell.CellReference == "D" + rowNumber)
-                        {
-                            if (value == null || value == string.Empty)
-                            {
-                                tray.Height = null;
-                            }
-                            else
-                            {
-                                tray.Height = int.Parse(value);
-                            }
+                        {                        
+                            tray.Purpose = value;
                         }
                         else if (cell.CellReference == "E" + rowNumber)
-                        {
-                            if (value == null || value == string.Empty)
-                            {
-                                tray.Length = null;
-                            }
-                            else
-                            {
-                                tray.Length = double.Parse(value);
-                            }
-                        }
-                        else if (cell.CellReference == "F" + rowNumber)
-                        {
-                            if (value == null || value == string.Empty)
-                            {
-                                tray.Weight = null;
-                            }
-                            else
-                            {
-                                tray.Weight = double.Parse(value);
-                            }
-                        }
-                        else if (cell.CellReference == "G" + rowNumber)
-                        {
-                            tray.Purpose = value;
+                        {                         
+                            tray.TrayTypeId = int.Parse(value);
                         }
                     }
 
-                    tray.SupportId = GetSupportTypeAsync(tray.Type).Result;
+                    //tray.SupportId = GetSupportTypeAsync(tray.Type).Result;
 
                     trays.Add(tray);
                 }
@@ -304,10 +255,10 @@ namespace TrayReportApp.Services
         {
             var supports = await _supportService.GetSupportsAsync();
 
-            var support = trayType.StartsWith("KL") ? 
-                supports.FirstOrDefault(s => s.Name.Contains("KL")) :
-                          trayType.StartsWith("WSL") ? 
-                          supports.FirstOrDefault(s => s.Name.Contains("WSL")) :
+            var support = trayType.StartsWith("KL") ?
+                supports.FirstOrDefault(s => s.Type.Contains("KL")) :
+                          trayType.StartsWith("WSL") ?
+                          supports.FirstOrDefault(s => s.Type.Contains("WSL")) :
                           null;
 
             if (support == null)
