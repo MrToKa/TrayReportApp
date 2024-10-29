@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
+﻿using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using TrayReportApp.Data.Repositories;
 using TrayReportApp.Models;
@@ -140,9 +142,87 @@ namespace TrayReportApp.Services
 
         public async Task UploadFromFileAsync(IBrowserFile file)
         {
-            throw new NotImplementedException();
-        }
+            List<TrayTypeServiceModel> trayTypes = new List<TrayTypeServiceModel>();
+            string? value = null;
 
+            using MemoryStream memoryStream = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            MemoryStream stream = memoryStream;
+
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+
+            if (document is not null)
+            {
+                WorkbookPart workbookPart = document.WorkbookPart;
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
+                SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+
+                for (int i = 1; i < sheetData.Elements<Row>().Count(); i++)
+                {
+                    TrayTypeServiceModel trayType = new TrayTypeServiceModel();
+                    Row row = sheetData.Elements<Row>().ElementAt(i);
+                    int rowNumber = int.Parse(row.RowIndex);
+
+                    foreach (Cell cell in row.Elements<Cell>())
+                    {
+                        value = cell.InnerText;
+
+                        if (cell.DataType != null && cell.DataType == CellValues.SharedString)
+                        {
+                            SharedStringTablePart stringTablePart = workbookPart.SharedStringTablePart;
+                            value = stringTablePart.SharedStringTable.ElementAt(int.Parse(value)).InnerText;
+                        }
+
+                        if (cell.CellReference == "A" + rowNumber)
+                        {
+                            trayType.Type = value;
+                        }
+                        else if (cell.CellReference == "B" + rowNumber)
+                        {
+                            trayType.Width = int.Parse(value);
+                        }
+                        else if (cell.CellReference == "C" + rowNumber)
+                        {
+                            trayType.Height = int.Parse(value);
+                        }
+                        else if (cell.CellReference == "D" + rowNumber)
+                        {
+                            if (value == null || value == string.Empty)
+                            {
+                                trayType.Length = null;
+                            }
+                            else
+                            {
+                                trayType.Length = int.Parse(value);
+                            }
+                        }
+                        else if (cell.CellReference == "E" + rowNumber)
+                        {
+                            trayType.Weight = double.Parse(value);
+                        }
+                        else if (cell.CellReference == "F" + rowNumber)
+                        {
+                            SupportServiceModel supportType = await GetSupportTypeAsync(value);
+
+                            if (supportType == null)
+                            {
+                                return;
+                            }
+
+                            trayType.SupportId = supportType.Id;
+                        }
+                    }
+
+                    trayTypes.Add(trayType);
+                }
+
+                foreach (var trayType in trayTypes)
+                {
+                    await CreateTrayTypeAsync(trayType);
+                }
+            }
+        }
         private async Task<SupportServiceModel> GetSupportTypeAsync(string trayType)
         {
             SupportServiceModel? supportType = await _supportService.GetSupportAsync(trayType);

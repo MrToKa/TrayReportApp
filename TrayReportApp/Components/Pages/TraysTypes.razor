@@ -17,7 +17,7 @@
     <MudItem>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" DropShadow="false" OnClick="@(() => AddTrayTypeAsync())">Create New Tray Type</MudButton>
     </MudItem>
-@*     <MudItem>
+    <MudItem>
         <MudFileUpload @ref="@_fileUpload" T="IBrowserFile" OnFilesChanged="UploadFile" Accept=".xlsx">
             <ActivatorContent>
                 <MudButton Variant="Variant.Filled"
@@ -27,7 +27,7 @@
                 </MudButton>
             </ActivatorContent>
         </MudFileUpload>
-    </MudItem> *@
+    </MudItem>
 </MudGrid>
 
 <MudPaper Elevation="0" Class="pa-4">
@@ -63,9 +63,13 @@
     </MudDataGrid>
 </MudPaper>
 
-@code{
-    private List<TrayTypeServiceModel> Elements { get; set;}
+@code {
+    private List<TrayTypeServiceModel> Elements { get; set; }
     private List<SupportServiceModel> Supports { get; set; }
+    private MudFileUpload<IBrowserFile> _fileUpload;
+
+    private Task ClearAsync()
+    => _fileUpload?.ClearAsync() ?? Task.CompletedTask;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,5 +126,20 @@
     private string GetSupportName(int supportId)
     {
         return Supports.FirstOrDefault(s => s.Id == supportId)?.Name ?? "Unknown";
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await TrayTypeService.UploadFromFileAsync(e.File);
+            Snackbar.Add("Tray Types added successfully!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        await ClearAsync();
+        await ReloadDataAsync();
     }
 }
