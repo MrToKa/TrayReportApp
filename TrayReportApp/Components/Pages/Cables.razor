@@ -38,11 +38,11 @@
 
 <MudPaper Elevation="0" Class="pa-4">
     <MudDataGrid T="CableTableModel" @ref="dataGrid" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true" Striped="true"
-                 EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore" RowsPerPage="25">
+                 EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore" SortMode="SortMode.Single" RowsPerPage="25">
         <Columns>
             <PropertyColumn Property="x => x.Tag" Title="Tag" Editable="false" CellStyleFunc="@TagCellStyleFunc">
             </PropertyColumn>
-            <TemplateColumn Title="Type" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
+            <TemplateColumn Title="Type" Editable="false" CellStyleFunc="@TypeCellStyleFunc" Sortable="true" Filterable="true">
                 <CellTemplate>
                     <MudText @onclick="(() => ShowTypeDialog(context.Item))">
                         @(string.IsNullOrEmpty(context.Item.Type) ? "No cable type assigned!" : context.Item.Type)
@@ -270,8 +270,14 @@
     {
         if (string.IsNullOrEmpty(x.Type))
         {
-            return "color: red; background-color:#F1F165";
+            return "color: black; background-color:#FF8A65";
         }
+        else if (!CableTypes.Select(y => y.Type).Contains(x.Type))
+        {
+            return "color: white; background-color:#81C784";
+        }
+
+
 
         return string.Empty;
     };
@@ -283,7 +289,7 @@
         || string.IsNullOrEmpty(x.Routing) 
         || string.IsNullOrEmpty(x.Type))
         {
-            return "background-color:#FFCC80";
+            return "background-color:#FFF9C4";
         }
 
         return string.Empty;
@@ -293,7 +299,7 @@
     {
         if (string.IsNullOrEmpty(x.FromLocation))
         {
-            return "background-color:#EF9A9A";
+            return "background-color:#FFCDD2";
         }
 
         return string.Empty;
@@ -303,7 +309,7 @@
     {
         if (string.IsNullOrEmpty(x.ToLocation))
         {
-            return "background-color:#EF9A9A";
+            return "background-color:#FFCDD2";
         }
 
         return string.Empty;
@@ -313,7 +319,7 @@
     {
         if (string.IsNullOrEmpty(x.Routing))
         {
-            return "background-color:#EF9A9A";
+            return "background-color:#FFCDD2";
         }
 
         return string.Empty;

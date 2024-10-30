@@ -20,14 +20,13 @@ namespace TrayReportApp.Services
             _repo = repo;
         }
 
-        public async Task<CableTypeServiceModel> CreateCableTypeAsync(CableTypeServiceModel cableType)
+        public async Task CreateCableTypeAsync(CableTypeServiceModel cableType)
         {
             bool cableTypeExists = await _repo.All<CableType>().AnyAsync(c => c.Type == cableType.Type);
 
             if (cableTypeExists)
             {
-                return null;
-                //throw new Exception("Cable type already exists");
+                return;
             }
 
             if (!Enum.TryParse(cableType.Purpose, out Purpose parsedPurpose))
@@ -46,7 +45,7 @@ namespace TrayReportApp.Services
             await _repo.AddAsync(newCableType);
             await _repo.SaveChangesAsync();
 
-            return cableType;
+            await UpdateCablesAsync(cableType);
         }
         public async Task DeleteCableTypeAsync(int id)
         {
@@ -91,7 +90,7 @@ namespace TrayReportApp.Services
                 })
                 .ToListAsync();
         }
-        public async Task<CableTypeServiceModel> UpdateCableTypeAsync(CableTypeServiceModel cableType)
+        public async Task UpdateCableTypeAsync(CableTypeServiceModel cableType)
         {
             var existingCableType = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Id == cableType.Id);
 
@@ -109,8 +108,7 @@ namespace TrayReportApp.Services
             existingCableType.Weight = cableType.Weight;
 
             await _repo.SaveChangesAsync();
-
-            return cableType;
+            await UpdateCablesAsync(cableType);
         }
         public async Task UploadFromFileAsync(IBrowserFile file)
         {
@@ -376,5 +374,18 @@ namespace TrayReportApp.Services
             workbookPart.Workbook.Save();
             document.Dispose();
         }        
+        private async Task UpdateCablesAsync(CableTypeServiceModel cableType)
+        {
+            var cables = await _repo.All<Cable>().Where(c => c.Type == cableType.Type).ToListAsync();
+            var cableTypeExisting = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Type == cableType.Type);
+
+            foreach (var cable in cables)            
+            {
+                cable.CableTypeId = cableType.Id;
+                cable.CableType = cableTypeExisting;
+            }
+
+            await _repo.SaveChangesAsync();
+        }
     }
 }
