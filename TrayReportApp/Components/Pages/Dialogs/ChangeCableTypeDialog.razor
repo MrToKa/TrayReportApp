@@ -1,0 +1,65 @@
+﻿@using TrayReportApp.Services.Models
+@using TrayReportApp.Services.Contracts
+
+@inject ISnackbar Snackbar
+@inject ICableService CableService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Select Cable Type</MudText>
+        <MudSelect T="string" Label="Cable Type" @bind-Value="SelectedType" Clearable="true">
+            <MudSelectItem Value="@_currentType">@_currentType (current)</MudSelectItem>
+            @foreach (var type in CableTypes)
+            {
+                <MudSelectItem Value="@type.Type">@type.Type</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveCableTypeAsync">Save</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] 
+    public string Title { get; set; }
+
+    [Parameter] 
+    public CableServiceModel CurrentCable { get; set; }
+
+    [Parameter] 
+    public List<CableTypeServiceModel> CableTypes { get; set; }
+
+    [Parameter] 
+    public string SelectedType { get; set; }
+
+    private string _currentType;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentType = CurrentCable.Type;
+    }
+
+    private async Task SaveCableTypeAsync()
+    {
+        try
+        {
+            CurrentCable.Type = SelectedType;
+            MudDialog.Close(DialogResult.Ok(SelectedType));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating Cable Type: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -32,6 +32,11 @@ namespace TrayReportApp.Services
 
             Support support = await _repo.All<Support>().FirstOrDefaultAsync(s => s.Id == trayType.SupportId);
 
+            if (support == null) 
+            {
+                throw new Exception("Support not found! Check your input data!");
+            }
+
             TrayType newTrayType = new TrayType
             {
                 Type = trayType.Type,
@@ -207,7 +212,7 @@ namespace TrayReportApp.Services
 
                             if (supportType == null)
                             {
-                                return;
+                                throw new Exception($"Support type {value} not found.");
                             }
 
                             trayType.SupportId = supportType.Id;

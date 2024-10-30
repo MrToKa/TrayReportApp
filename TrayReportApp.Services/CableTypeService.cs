@@ -54,19 +54,19 @@ namespace TrayReportApp.Services
 
             if (cableType == null)
             {
-                throw new Exception("Cable type not found");
+                return;
             }
 
             await _repo.DeleteAsync<CableType>(cableType.Id);
             await _repo.SaveChangesAsync();
         }
-        public async Task<CableTypeServiceModel> GetCableTypeAsync(int id)
+        public async Task<CableTypeServiceModel> GetCableTypeAsync(string type)
         {
-            var cableType = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Id == id);
+            var cableType = await _repo.All<CableType>().FirstOrDefaultAsync(c => c.Type == type);
 
             if (cableType == null)
             {
-                throw new Exception("Cable type not found");
+                return null;
             }
 
             return new CableTypeServiceModel

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TrayReportApp.Data;
@@ -11,9 +12,11 @@ using TrayReportApp.Data;
 namespace TrayReportApp.Data.Migrations
 {
     [DbContext(typeof(TrayReportAppDbContext))]
-    partial class TrayReportAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241029224702_TrayEntityModifications")]
+    partial class TrayEntityModifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,9 +33,6 @@ namespace TrayReportApp.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CableTypeId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("FromLocation")
                         .HasColumnType("text");
 
@@ -46,12 +46,12 @@ namespace TrayReportApp.Data.Migrations
                     b.Property<string>("ToLocation")
                         .HasColumnType("text");
 
-                    b.Property<string>("Type")
-                        .HasColumnType("text");
+                    b.Property<int?>("Type")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CableTypeId");
+                    b.HasIndex("Type");
 
                     b.ToTable("Cables");
                 });
@@ -188,7 +188,7 @@ namespace TrayReportApp.Data.Migrations
                 {
                     b.HasOne("TrayReportApp.Models.CableType", "CableType")
                         .WithMany("Cables")
-                        .HasForeignKey("CableTypeId");
+                        .HasForeignKey("Type");
 
                     b.Navigation("CableType");
                 });

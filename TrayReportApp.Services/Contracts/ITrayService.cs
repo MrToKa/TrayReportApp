@@ -7,9 +7,9 @@ namespace TrayReportApp.Services.Contracts
     {
         Task<List<TrayServiceModel>> GetTraysAsync();
         Task<TrayServiceModel> GetTrayAsync(int id);
-        Task<TrayServiceModel> CreateTrayAsync(TrayServiceModel tray);
-        Task<TrayServiceModel> UpdateTrayAsync(TrayServiceModel tray);
+        Task CreateTrayAsync(TrayServiceModel tray);
+        Task UpdateTrayAsync(TrayServiceModel tray);
         Task DeleteTrayAsync(int id);
-        Task UploadFromFileAsync(IBrowserFile file);
+        //Task UploadFromFileAsync(IBrowserFile file);
     }
 }

@@ -17,7 +17,7 @@ namespace TrayReportApp.Services
 
         public async Task<SupportServiceModel> CreateSupportAsync(SupportServiceModel support)
         {
-            bool supportExists = await _repo.All<Support>().AnyAsync(s => s.Name == support.Name && s.Type == support.Type);
+            bool supportExists = await _repo.All<Support>().AnyAsync(s => s.Name == support.Name);
 
             if (supportExists)
             {
@@ -27,7 +27,6 @@ namespace TrayReportApp.Services
             var newSupport = new Support
             {
                 Name = support.Name,
-                Type = support.Type,
                 Weight = support.Weight,
                 Distance = support.Distance
             };
@@ -38,7 +37,6 @@ namespace TrayReportApp.Services
             return new SupportServiceModel
             {
                 Name = newSupport.Name,
-                Type = newSupport.Type,
                 Weight = newSupport.Weight,
                 Distance = newSupport.Distance
             };
@@ -49,17 +47,17 @@ namespace TrayReportApp.Services
             var support = await _repo.All<Support>().FirstOrDefaultAsync(s => s.Id == id);
             if (support == null)
             {
-                throw new Exception("Support not found");
+                return;
             }
 
             await _repo.DeleteAsync<Support>(support.Id);
             await _repo.SaveChangesAsync();
         }
 
-        public async Task<SupportServiceModel> GetSupportAsync(string type)
+        public async Task<SupportServiceModel> GetSupportAsync(string name)
         {
             var support = await _repo.All<Support>()
-                .FirstOrDefaultAsync(s => s.Type == type);
+                .FirstOrDefaultAsync(s => s.Name.Contains(name));
             if (support == null)
             {
                 return null;
@@ -69,7 +67,6 @@ namespace TrayReportApp.Services
             {
                 Id = support.Id,
                 Name = support.Name,
-                Type = support.Type,
                 Weight = support.Weight,
                 Distance = support.Distance
             };
@@ -83,7 +80,6 @@ namespace TrayReportApp.Services
             {
                 Id = s.Id,
                 Name = s.Name,
-                Type = s.Type,
                 Weight = s.Weight,
                 Distance = s.Distance
             }).ToList();
@@ -94,11 +90,10 @@ namespace TrayReportApp.Services
             var existingSupport = await this._repo.GetByIdAsync<Support>(support.Id);
             if (existingSupport == null)
             {
-                throw new Exception("Support not found");
+                return null;
             }
 
             existingSupport.Name = support.Name;
-            existingSupport.Type = support.Type;
             existingSupport.Weight = support.Weight;
             existingSupport.Distance = support.Distance;
 
@@ -109,7 +104,6 @@ namespace TrayReportApp.Services
             {
                 Id = existingSupport.Id,
                 Name = existingSupport.Name,
-                Type = existingSupport.Type,
                 Weight = existingSupport.Weight,
                 Distance = existingSupport.Distance
             };

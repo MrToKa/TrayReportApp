@@ -23,7 +23,6 @@
                  EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore">
         <Columns>
             <PropertyColumn Property="x => x.Name" Title="Name" />
-            <PropertyColumn Property="x => x.Type" Title="Type" />
             <PropertyColumn Property="x => x.Weight" Title="Weight [kg]" />
             <PropertyColumn Property="x => x.Distance" Title="Distance [m]" />
             <TemplateColumn Title="Actions" Editable="false">

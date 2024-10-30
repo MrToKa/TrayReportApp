@@ -1,0 +1,71 @@
+﻿@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ISnackbar Snackbar
+@inject ICableTypeService CableTypeService
+@inject ICableService CableService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Tag" @bind-Value="CableElement.Tag" />
+        <MudAutocomplete T="string" @bind-Value="CableElement.Type" SearchFunc="Search" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined" Label="Type" Clearable="true" CoerceText="true" ResetValueOnEmptyText="true" CoerceValue="true" />
+        <MudTextField T="string" Variant="Variant.Outlined" Label="From Location" @bind-Value="CableElement.FromLocation" />
+        <MudTextField T="string" Variant="Variant.Outlined" Label="To Location" @bind-Value="CableElement.ToLocation" />
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Routing" @bind-Value="CableElement.Routing" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveCableTypeAsync">Save</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    public CableServiceModel CableElement { get; set; } = new CableServiceModel();
+    public List<CableTypeServiceModel> CableTypes { get; set; } = new List<CableTypeServiceModel>();
+
+    private List<string> Purposes = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Purposes = await CableTypeService.GetCablesPurposes();
+        CableTypes = await CableTypeService.GetCableTypesAsync();
+    }
+
+    private async Task SaveCableTypeAsync()
+    {
+        try
+        {
+            await CableService.CreateCableAsync(CableElement);
+            Snackbar.Add("Cable saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding Cable: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<string>> Search(string value, CancellationToken token)
+    {   
+        await Task.Delay(5, token);
+        if (string.IsNullOrEmpty(value))
+        {
+            return CableTypes.Select(x => x.Type.ToString());
+        }
+        return CableTypes.Where(x => x.Type.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+        .Select(x => x.Type.ToString());
+    }
+}

@@ -5,7 +5,7 @@ namespace TrayReportApp.Services.Contracts
 {
     public interface ICableService
     {
-        Task<CableServiceModel> CreateCableAsync(CableServiceModel cable);
+        Task CreateCableAsync(CableServiceModel cable);
 
         Task DeleteCableAsync(int id);
 

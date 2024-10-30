@@ -8,9 +8,10 @@ namespace TrayReportApp.Models
         [Key]
         public int Id { get; set; }
         public string Tag { get; set; }
+        public string? Type { get; set; }
 
         [ForeignKey(nameof(CableType))]
-        public int? Type { get; set; }
+        public int? CableTypeId { get; set; }
         public CableType? CableType { get; set; }
         public string? FromLocation { get; set; }
         public string? ToLocation { get; set; }

@@ -6,7 +6,7 @@ namespace TrayReportApp.Services.Contracts
     public interface ICableTypeService
     {
         Task<List<CableTypeServiceModel>> GetCableTypesAsync();
-        Task<CableTypeServiceModel> GetCableTypeAsync(int id);
+        Task<CableTypeServiceModel> GetCableTypeAsync(string type);
         Task<CableTypeServiceModel> CreateCableTypeAsync(CableTypeServiceModel cableType);
         Task<CableTypeServiceModel> UpdateCableTypeAsync(CableTypeServiceModel cableType);
         Task DeleteCableTypeAsync(int id);

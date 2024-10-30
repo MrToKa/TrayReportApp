@@ -1,0 +1,321 @@
+﻿@page "/cables"
+
+@using TrayReportApp.Components.Pages.Dialogs
+@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ICableService CableService
+@inject ICableTypeService CableTypeService
+
+<PageTitle>Cables</PageTitle>
+
+<h1>Cables</h1>
+
+<MudGrid Spacing="3" Justify="Justify.Center">
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" DropShadow="false" OnClick="@(() => AddCableAsync())">Create New Cable</MudButton>
+    </MudItem>
+    <MudItem>
+        <MudFileUpload @ref="@_fileUpload" T="IBrowserFile" OnFilesChanged="UploadFile" Accept=".xlsx">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Add Cable Types from file
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SimCardDownload" DropShadow="false" OnClick="@(() => ExportTableAsync())">Export Full Report</MudButton>
+    </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FilterList" DropShadow="false" OnClick="@(() => ExportFilteredTableAsync())">Export Filtered Report</MudButton>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="0" Class="pa-4">
+    <MudDataGrid T="CableTableModel" @ref="dataGrid" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true" Striped="true"
+                 EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore" RowsPerPage="25">
+        <Columns>
+            <PropertyColumn Property="x => x.Tag" Title="Tag" Editable="false" CellStyleFunc="@TagCellStyleFunc">
+            </PropertyColumn>
+            <TemplateColumn Title="Type" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
+                <CellTemplate>
+                    <MudText @onclick="(() => ShowTypeDialog(context.Item))">
+                        @(string.IsNullOrEmpty(context.Item.Type) ? "No cable type assigned!" : context.Item.Type)
+                    </MudText>
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.Purpose" Title="Purpose" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
+                <CellTemplate>
+                    @(string.IsNullOrEmpty(context.Item.Purpose) ? "No cable type assigned!" : context.Item.Purpose)
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Diameter" Title="Diameter [mm]" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
+                <CellTemplate>
+                    @(context.Item.Diameter == null ? "No cable type assigned!" : context.Item.Diameter.ToString())
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Weight" Title="Weight [kg/m]" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
+                <CellTemplate>
+                    @(context.Item.Weight == null ? "No cable type assigned!" : context.Item.Weight.ToString())
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.FromLocation" Title="From Location" Required="false" CellStyleFunc="@FromCellStyleFunc">
+                <CellTemplate>
+                    @(string.IsNullOrEmpty(context.Item.FromLocation) ? "No from location assigned!" : context.Item.FromLocation)
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.ToLocation" Title="To Location" Required="false" CellStyleFunc="@ToCellStyleFunc">
+                <CellTemplate>
+                    @(string.IsNullOrEmpty(context.Item.ToLocation) ? "No to location assigned!" : context.Item.ToLocation)
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Routing" Title="Routing" Required="false" CellStyleFunc="@RoutingCellStyleFunc">
+                <CellTemplate>
+                    @(string.IsNullOrEmpty(context.Item.Routing) ? "No routing assigned!" : context.Item.Routing)
+                </CellTemplate>
+            </PropertyColumn>
+            <TemplateColumn Title="Actions" Editable="false">
+                <CellTemplate>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteCableAsync(context.Item.Id))" />
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="CableTableModel" />
+        </PagerContent>
+    </MudDataGrid>
+</MudPaper>
+
+@code {
+    private MudDataGrid<CableTableModel> dataGrid = new MudDataGrid<CableTableModel>();
+    private List<CableTableModel> Elements = new List<CableTableModel>();
+    private List<CableTypeServiceModel> CableTypes = new List<CableTypeServiceModel>();
+    private List<CableServiceModel> CablesList = new List<CableServiceModel>();
+
+    private MudFileUpload<IBrowserFile> _fileUpload;
+
+    private IEnumerable<CableTableModel> FilteredItems { get; set; } = new List<CableTableModel>();
+
+    private Task ClearAsync()
+    => _fileUpload?.ClearAsync() ?? Task.CompletedTask;
+
+    private string _selectedType;
+    private string _currentType;
+    private CableServiceModel _currentCable;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadDataAsync();
+    }
+
+    private async Task ReloadDataAsync()
+    {
+        CablesList = await CableService.GetCablesAsync();
+        CableTypes = await CableTypeService.GetCableTypesAsync();
+
+        foreach (var cable in CablesList)
+        {
+            var cableType = CableTypes.FirstOrDefault(x => x.Type == cable.Type);
+
+            Elements = CablesList.Select(cable =>
+            {
+                var cableType = CableTypes.FirstOrDefault(x => x.Type == cable.Type);
+                return new CableTableModel
+                    {
+                        Id = cable.Id,
+                        Tag = cable.Tag,
+                        Type = cable.Type,
+                        FromLocation = cable.FromLocation,
+                        ToLocation = cable.ToLocation,
+                        Routing = cable.Routing,
+                        Purpose = cableType?.Purpose,
+                        Diameter = cableType?.Diameter,
+                        Weight = cableType?.Weight
+                    };
+            }).ToList();
+        }
+    }
+
+    private async Task AddCableAsync()
+    {
+        DialogParameters parameters = new DialogParameters<AddCableDialog>
+        {
+            { x => x.Title , "Add New Cable" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<AddCableDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await ReloadDataAsync();
+        }
+    }
+
+    private async Task DeleteCableAsync(int id)
+    {
+        DialogParameters parameters = new DialogParameters<DeleteDialog>
+        {
+            { x => x.Title , "Delete Cable?" },
+            { x => x.Content, "Are you sure you want to delete this Cable?" },
+            { x => x.Result, "Cable was deleted!" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<DeleteDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await CableService.DeleteCableAsync(id);
+            await ReloadDataAsync();
+        }
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await CableService.UploadFromFileAsync(e.File);
+            Snackbar.Add("Cables were added successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        await ClearAsync();
+        await ReloadDataAsync();
+    }
+
+    private async Task ExportTableAsync()
+    {
+        //await CableService.ExportCablesAsync(Elements);
+    }
+
+    private async Task ExportFilteredTableAsync()
+    {
+        //var filteredElements = dataGrid.GetFilteredItems();
+        //await CableService.ExportCablesAsync(filteredElements);
+    }
+
+    private async Task ItemHasBeenCommitted(CableTableModel item)
+    {
+        var cable = new CableServiceModel
+            {
+                Id = item.Id,
+                Tag = item.Tag,
+                Type = item.Type,
+                FromLocation = item.FromLocation,
+                ToLocation = item.ToLocation,
+                Routing = item.Routing
+            };
+
+        await CableService.UpdateCableAsync(cable);
+        Snackbar.Add("Cable updated successfully", Severity.Success);
+    }
+
+    private async Task ShowTypeDialog(CableTableModel cable)
+    {
+        _currentCable = await CableService.GetCableAsync(cable.Id);
+        _currentType = cable.Type;
+        _selectedType = cable.Type;
+
+        DialogParameters parameters = new DialogParameters<ChangeCableTypeDialog>
+        {
+            { "Title" , "Change Cable Type" },
+            { "CurrentCable", _currentCable },
+            { "CableTypes", CableTypes },
+            { "SelectedType", _selectedType }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<ChangeCableTypeDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            _selectedType = result.Data as string;
+
+            var cableType = CableTypes.FirstOrDefault(x => x.Type == _selectedType);
+
+            _currentCable.Type = _selectedType;
+
+            var cableToUpdate = Elements.FirstOrDefault(e => e.Id == _currentCable.Id);
+
+            if (cableToUpdate != null)
+            {
+                cableToUpdate.Type = _currentCable.Type;
+                cableToUpdate.FromLocation = _currentCable.FromLocation;
+                cableToUpdate.ToLocation = _currentCable.ToLocation;
+                cableToUpdate.Routing = _currentCable.Routing;
+                cableToUpdate.Purpose = cableType?.Purpose;
+                cableToUpdate.Diameter = cableType?.Diameter;
+                cableToUpdate.Weight = cableType?.Weight;
+            }
+
+            await ItemHasBeenCommitted(cableToUpdate);
+
+            Elements = new List<CableTableModel>(Elements);
+            StateHasChanged();
+        }
+    }
+
+    private Func<CableTableModel, string> TypeCellStyleFunc => x =>
+    {
+        if (string.IsNullOrEmpty(x.Type))
+        {
+            return "color: red; background-color:#F1F165";
+        }
+
+        return string.Empty;
+    };
+
+    private Func<CableTableModel, string> TagCellStyleFunc => x =>
+    {
+        if (string.IsNullOrEmpty(x.FromLocation) 
+        || string.IsNullOrEmpty(x.ToLocation) 
+        || string.IsNullOrEmpty(x.Routing) 
+        || string.IsNullOrEmpty(x.Type))
+        {
+            return "background-color:#FFCC80";
+        }
+
+        return string.Empty;
+    };
+
+    private Func<CableTableModel, string> FromCellStyleFunc => x =>
+    {
+        if (string.IsNullOrEmpty(x.FromLocation))
+        {
+            return "background-color:#EF9A9A";
+        }
+
+        return string.Empty;
+    };
+
+    private Func<CableTableModel, string> ToCellStyleFunc => x =>
+    {
+        if (string.IsNullOrEmpty(x.ToLocation))
+        {
+            return "background-color:#EF9A9A";
+        }
+
+        return string.Empty;
+    };
+
+    private Func<CableTableModel, string> RoutingCellStyleFunc => x =>
+    {
+        if (string.IsNullOrEmpty(x.Routing))
+        {
+            return "background-color:#EF9A9A";
+        }
+
+        return string.Empty;
+    };
+}

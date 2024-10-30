@@ -12,19 +12,22 @@ namespace TrayReportApp.Services
     public class CableService : ICableService
     {
         private readonly ITrayReportAppDbRepository _repo;
+        private readonly ICableTypeService _cableTypeService;
 
-        public CableService(ITrayReportAppDbRepository repo)
+        public CableService(ITrayReportAppDbRepository repo, 
+            ICableTypeService cableTypeService)
         {
             _repo = repo;
+            _cableTypeService = cableTypeService;
         }
 
-        public async Task<CableServiceModel> CreateCableAsync(CableServiceModel cable)
+        public async Task CreateCableAsync(CableServiceModel cable)
         {
-            bool cableExists = await _repo.All<Cable>().AnyAsync(c => c.Tag == cable.Tag && c.CableType.Id == cable.Type);
+            bool cableExists = await _repo.All<Cable>().AnyAsync(c => c.Tag == cable.Tag && c.Type == cable.Type);
 
             if (cableExists)
             {
-                return null;
+                return;
             }
 
             Cable newCable = new Cable
@@ -32,26 +35,24 @@ namespace TrayReportApp.Services
                 Tag = cable.Tag,
                 FromLocation = cable.FromLocation,
                 ToLocation = cable.ToLocation,
-                Routing = cable.Routing,
+                Routing = cable.Routing,                
             };
 
-            if (cable.Type.HasValue)
+            var cableType = await _cableTypeService.GetCableTypeAsync(cable.Type);
+
+            if (cableType != null)
             {
-                newCable.Type = cable.Type.Value;
+                newCable.Type = cableType.Type;
+                newCable.CableTypeId = cableType.Id;
+            }
+            else
+            {
+                newCable.Type = cable.Type;
+                newCable.CableTypeId = null;
             }
 
             await _repo.AddAsync(newCable);
             await _repo.SaveChangesAsync();
-
-            return new CableServiceModel
-            {
-                Id = newCable.Id,
-                Tag = newCable.Tag,
-                Type = newCable.Type,
-                FromLocation = newCable.FromLocation,
-                ToLocation = newCable.ToLocation,
-                Routing = cable.Routing
-            };
         }
 
         public async Task DeleteCableAsync(int id)
@@ -59,7 +60,7 @@ namespace TrayReportApp.Services
             var cable = await _repo.All<Cable>().FirstOrDefaultAsync(c => c.Id == id);
             if (cable == null)
             {
-                throw new Exception("Cable not found");
+                return;
             }
 
             await _repo.DeleteAsync<Cable>(cable.Id);
@@ -74,7 +75,7 @@ namespace TrayReportApp.Services
 
             if (cable == null)
             {
-                throw new Exception("Cable not found");
+                return null;
             }
 
             var cableServiceModel = new CableServiceModel
@@ -84,7 +85,8 @@ namespace TrayReportApp.Services
                 Type = cable.Type,
                 FromLocation = cable.FromLocation,
                 ToLocation = cable.ToLocation,
-                Routing = cable.Routing
+                Routing = cable.Routing,
+                CableTypeId = cable.CableTypeId
             };
 
             return cableServiceModel;
@@ -103,7 +105,8 @@ namespace TrayReportApp.Services
                 Type = c.Type,
                 FromLocation = c.FromLocation,
                 ToLocation = c.ToLocation,
-                Routing = c.Routing
+                Routing = c.Routing,
+                CableTypeId = c.CableTypeId
             }).ToList();
         }
 
@@ -113,7 +116,7 @@ namespace TrayReportApp.Services
 
             if (cableToUpdate == null)
             {
-                throw new Exception("Cable not found");
+                return;
             }
 
             cableToUpdate.Tag = cable.Tag;
@@ -121,9 +124,16 @@ namespace TrayReportApp.Services
             cableToUpdate.ToLocation = cable.ToLocation;
             cableToUpdate.Routing = cable.Routing;
 
-            if (cable.Type.HasValue)
+            if (cable.Type != null && cableToUpdate.Type != cable.Type)
             {
-                cableToUpdate.Type = cable.Type.Value;
+                var cableType = await _cableTypeService.GetCableTypeAsync(cable.Type);
+                cableToUpdate.Type = cableType.Type;
+                cableToUpdate.CableTypeId = cableType.Id;
+            }
+            else
+            {
+                cableToUpdate.Type = cable.Type;
+                cableToUpdate.CableTypeId = null;
             }
 
             await _repo.SaveChangesAsync();
@@ -171,7 +181,14 @@ namespace TrayReportApp.Services
                         }
                         else if (cell.CellReference == "B" + rowNumber)
                         {
-                            cable.Type = int.Parse(value);
+                            if (value != null && value != string.Empty)
+                            {
+                                cable.Type = value;
+                            }
+                            else
+                            {
+                                cable.Type = null;
+                            }
                         }
                         else if (cell.CellReference == "C" + rowNumber)
                         {
@@ -185,6 +202,12 @@ namespace TrayReportApp.Services
                         {
                             cable.Routing = value;
                         }
+                    }
+
+                    if (cable.Type != null)
+                    {
+                        var cableType = await _cableTypeService.GetCableTypeAsync(cable.Type);
+                        cable.CableTypeId = cableType == null ? null : cableType.Id;
                     }
 
                     cables.Add(cable);

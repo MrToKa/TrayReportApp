@@ -12,7 +12,7 @@ namespace TrayReportApp.Models
         public string Purpose { get; set; }
         public double Length { get; set; }
         public double? Weight { get; set; }
-        public int? SupportsCount { get; set; }
+        public int SupportsCount { get; set; }
         public double? FreeSpace { get; set; }
         public double? FreePercentage { get; set; }
         [ForeignKey(nameof(TrayType))]
