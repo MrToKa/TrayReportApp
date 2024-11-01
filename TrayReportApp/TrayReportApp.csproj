@@ -28,4 +28,9 @@
     <ProjectReference Include="..\TrayReportApp.Data\TrayReportApp.Data.csproj" />
     <ProjectReference Include="..\TrayReportApp.Services\TrayReportApp.Services.csproj" />
   </ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="Components\Pages\Filters\Cables\" />
+  </ItemGroup>
 </Project>
