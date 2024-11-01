@@ -1,6 +1,7 @@
 ﻿@page "/cables"
 
 @using TrayReportApp.Components.Pages.Dialogs
+@using TrayReportApp.Components.Pages.Filters.Cables
 @using TrayReportApp.Services.Comparers
 @using TrayReportApp.Services.Contracts
 @using TrayReportApp.Services.Models
@@ -48,25 +49,8 @@
                     </MudText>
                 </CellTemplate>
                 <FilterTemplate>
-                    <MudIconButton OnClick="@OpenFilter" Icon="@_icon" Size="@Size.Small" />
-                    <MudOverlay Visible="@_filterOpen" OnClick="@(() => _filterOpen = false)" />
-                    <MudPopover Open="@_filterOpen" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter"
-                                Style="width:500px">
-                        <MudStack Spacing="0">
-                            <MudCheckBox T="bool" Label="Select All" Size="@Size.Small" Value="@_selectAll" ValueChanged="@SelectAll" />
-                            <MudStack Spacing="0" Style="overflow-y:auto;max-height:250px">
-                                @foreach (var item in CableTypesInTable)
-                                {
-                                    <MudCheckBox T="bool" Label="@item.Type" Size="@Size.Small" Value="@SelectedTypeItems.Contains(item.Type)" ValueChanged="@((bool value) => SelectedChanged(value, item))" />
-                                }
-                            </MudStack>
-                            <MudStack Row="true">
-                                <MudButton OnClick="@(() => ClearFilterAsync(context))">Clear</MudButton>
-                                <MudButton Color="@Color.Primary" OnClick="@(() => ApplyFilterAsync(context))">Filter</MudButton>
-                            </MudStack>
-                        </MudStack>
-                    </MudPopover>
-                </FilterTemplate>
+                    <TypeColumnFilter Context="@context" TypesInTable="CableTypesInTable" />
+                </FilterTemplate>                
             </TemplateColumn>
             <PropertyColumn Property="x => x.Purpose" Title="Purpose" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
                 <CellTemplate>
@@ -119,21 +103,15 @@
     private List<CableTypeServiceModel> CableTypesInTable = new List<CableTypeServiceModel>();
     private List<CableServiceModel> CablesList = new List<CableServiceModel>();
 
-    private HashSet<string> SelectedTypeItems = new HashSet<string>();
-    private HashSet<string> FilteredTypeItems = new HashSet<string>();
-
     private MudFileUpload<IBrowserFile> _fileUpload;
+
     private Task ClearAsync()
     => _fileUpload?.ClearAsync() ?? Task.CompletedTask;
 
     private CableServiceModel _currentCable;
-    private FilterDefinition<CableTableModel> _filterDefinition;
 
     private string _selectedType;
-    private string _currentType;
-    private bool _filterOpen = false;
-    private bool _selectAll = true;
-    private string _icon = Icons.Material.Outlined.FilterAlt;
+    private string _currentType;   
 
     protected override async Task OnInitializedAsync()
     {
@@ -144,8 +122,6 @@
     {
         CablesList = await CableService.GetCablesAsync();
         CableTypes = await CableTypeService.GetCableTypesAsync();
-
-        RefreshTypesFilter();
 
         foreach (var cable in CablesList)
         {
@@ -172,15 +148,7 @@
         CableTypesInTable = Elements
             .Select(x => new CableTypeServiceModel { Type = x.Type })
             .Distinct(new CableTypeServiceModelComparer())
-            .ToList();
-
-        _filterDefinition = new FilterDefinition<CableTableModel>
-        {
-                FilterFunction = (item) => SelectedTypeItems.Contains(item.Type) 
-                // || (string.IsNullOrEmpty(item.Type) 
-                // && SelectedTypeItems.Contains(string.Empty))
-                
-        };        
+            .ToList();       
     }
 
     private async Task AddCableAsync()
@@ -362,72 +330,4 @@
 
         return string.Empty;
     };
-
-    private void OpenFilter()
-    {
-        _filterOpen = true;
-    }
-
-    private void SelectedChanged(bool value, CableTypeServiceModel item)
-    {
-        if (value)
-        {
-            if (!SelectedTypeItems.Contains(item.Type))
-            {
-                SelectedTypeItems.Add(item.Type);
-            }
-        }
-        else
-        {
-            SelectedTypeItems.Remove(item.Type);
-        }
-
-        if (SelectedTypeItems.Count == CableTypes.Count)
-        {
-            _selectAll = true;
-        }
-        else
-        {
-            _selectAll = false;
-        }
-    }
-
-    private async Task ApplyFilterAsync(FilterContext<CableTableModel> context)
-    {
-        FilteredTypeItems = SelectedTypeItems.ToHashSet();
-        _icon = FilteredTypeItems.Count == Elements.Count() ? Icons.Material.Outlined.FilterAlt : Icons.Material.Filled.FilterAlt;        
-        await context.Actions.ApplyFilterAsync(_filterDefinition);
-        _filterOpen = false;
-    }
-
-    private async Task ClearFilterAsync(FilterContext<CableTableModel> context)
-    {
-        RefreshTypesFilter();
-        _icon = Icons.Material.Outlined.FilterAlt;
-        await context.Actions.ClearFilterAsync(_filterDefinition);
-        _filterOpen = false;        
-    }
-
-    private void SelectAll(bool value)
-    {
-        _selectAll = value;
-
-        if (value)
-        {
-            RefreshTypesFilter();
-        }
-        else
-        {
-            SelectedTypeItems.Clear();
-        }
-    }
-
-    private void RefreshTypesFilter()
-    {
-        foreach (var cableType in CableTypesInTable)
-        {
-            SelectedTypeItems.Add(cableType.Type);
-            FilteredTypeItems.Add(cableType.Type);
-        }
-    }
 }
