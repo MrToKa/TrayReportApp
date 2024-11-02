@@ -39,10 +39,10 @@
 </MudGrid>
 
 <MudPaper Elevation="0" Class="pa-4">
-    <MudDataGrid T="CableTableModel" @ref="dataGrid" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true" Striped="true" EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.ColumnFilterRow" FilterCaseSensitivity="DataGridFilterCaseSensitivity.Ignore" SortMode="SortMode.Single" RowsPerPage="25">
+    <MudDataGrid T="CableTableModel" @ref="dataGrid" Items="@Elements" ReadOnly="false" Bordered="true" Dense="true" Hover="true" Striped="true" EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.ColumnFilterRow" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortMode="SortMode.Single" RowsPerPage="25" Loading="_loading">
         <Columns>
             <PropertyColumn Property="x => x.Tag" Title="Tag" Editable="false" CellStyleFunc="@TagCellStyleFunc" />
-            <TemplateColumn Title="Type" Editable="false" CellStyleFunc="@TypeCellStyleFunc" Sortable="true"ShowColumnOptions="true" Filterable="true" SortBy="@(x => x.Type)">
+            <TemplateColumn Title="Type" Editable="false" CellStyleFunc="@TypeCellStyleFunc" Sortable="true" ShowColumnOptions="true" Filterable="true" SortBy="@(x => x.Type)">
                 <CellTemplate>
                     <MudText @onclick="(() => ShowTypeDialog(context.Item))">
                         @(string.IsNullOrEmpty(context.Item.Type) ? "No cable type assigned!" : context.Item.Type)
@@ -50,21 +50,24 @@
                 </CellTemplate>
                 <FilterTemplate>
                     <TypeColumnFilter Context="@context" TypesInTable="CableTypesInTable" />
-                </FilterTemplate>                
+                </FilterTemplate>
             </TemplateColumn>
             <PropertyColumn Property="x => x.Purpose" Title="Purpose" Editable="false" CellStyleFunc="@TypeCellStyleFunc">
                 <CellTemplate>
-                    @(string.IsNullOrEmpty(context.Item.Purpose) ? "No cable type assigned!" : context.Item.Purpose)
+                    @(string.IsNullOrEmpty(context.Item.Purpose) ? string.IsNullOrEmpty(context.Item.Type) ? "No cable type assigned!" : "Cable type not present in the Database!" : context.Item.Purpose)
                 </CellTemplate>
+                <FilterTemplate>
+                    <PurposeColumnFilter Context="@context" PurposeInTable="PurposeTypesInTable" />
+                </FilterTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.Diameter" Title="Diameter [mm]" Editable="false" Filterable="false" CellStyleFunc="@TypeCellStyleFunc">
                 <CellTemplate>
-                    @(context.Item.Diameter == null ? "No cable type assigned!" : context.Item.Diameter.ToString())
+                    @(context.Item.Diameter == null ? string.IsNullOrEmpty(context.Item.Type) ? "No cable type assigned!" : "Cable type not present in the Database!" : context.Item.Diameter.ToString())
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.Weight" Title="Weight [kg/m]" Editable="false" Filterable="false" CellStyleFunc="@TypeCellStyleFunc">
                 <CellTemplate>
-                    @(context.Item.Weight == null ? "No cable type assigned!" : context.Item.Weight.ToString())
+                    @(context.Item.Weight == null ? string.IsNullOrEmpty(context.Item.Type) ? "No cable type assigned!" : "Cable type not present in the Database!" : context.Item.Weight.ToString())
                 </CellTemplate>
             </PropertyColumn>
             <PropertyColumn Property="x => x.FromLocation" Title="From Location" Required="false" CellStyleFunc="@FromCellStyleFunc">
@@ -101,7 +104,9 @@
     private List<CableTableModel> Elements = new List<CableTableModel>();
     private List<CableTypeServiceModel> CableTypes = new List<CableTypeServiceModel>();
     private List<CableTypeServiceModel> CableTypesInTable = new List<CableTypeServiceModel>();
+    private List<CableTypeServiceModel> PurposeTypesInTable = new List<CableTypeServiceModel>();
     private List<CableServiceModel> CablesList = new List<CableServiceModel>();
+    private IEnumerable<CableServiceModel> FilteredItems { get; set; } = new List<CableServiceModel>();
 
     private MudFileUpload<IBrowserFile> _fileUpload;
 
@@ -111,7 +116,9 @@
     private CableServiceModel _currentCable;
 
     private string _selectedType;
-    private string _currentType;   
+    private string _currentType;
+    private string searchValue;
+    private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,6 +127,7 @@
 
     private async Task ReloadDataAsync()
     {
+        _loading = true;
         CablesList = await CableService.GetCablesAsync();
         CableTypes = await CableTypeService.GetCableTypesAsync();
 
@@ -148,7 +156,13 @@
         CableTypesInTable = Elements
             .Select(x => new CableTypeServiceModel { Type = x.Type })
             .Distinct(new CableTypeServiceModelComparer())
-            .ToList();       
+            .ToList();
+
+        PurposeTypesInTable = Elements.Select(x => new CableTypeServiceModel { Purpose = x.Purpose })
+            .Distinct(new CableTypeServiceModelPurposeComparer())
+            .ToList();
+
+        _loading = false;
     }
 
     private async Task AddCableAsync()
@@ -204,13 +218,28 @@
 
     private async Task ExportTableAsync()
     {
-        //await CableService.ExportCablesAsync(Elements);
+        try{
+            await CableService.ExportTableEntriesAsync();
+            Snackbar.Add("Table was exported successfully!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private async Task ExportFilteredTableAsync()
     {
-        //var filteredElements = dataGrid.GetFilteredItems();
-        //await CableService.ExportCablesAsync(filteredElements);
+        await GetFilteredItems();
+        try
+        {
+            await CableService.ExportFilteredTableEntriesAsync(FilteredItems);
+            Snackbar.Add("Filtered Table was exported successfully!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }        
     }
 
     private async Task ItemHasBeenCommitted(CableTableModel item)
@@ -227,6 +256,12 @@
 
         await CableService.UpdateCableAsync(cable);
         Snackbar.Add("Cable updated successfully", Severity.Success);
+    }
+
+    private async Task GetFilteredItems()
+    {
+        var data = dataGrid.FilteredItems;
+        FilteredItems = CablesList.Where(x => data.Any(y => y.Tag == x.Tag)).ToList();
     }
 
     private async Task ShowTypeDialog(CableTableModel cable)

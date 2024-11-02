@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
@@ -220,14 +221,211 @@ namespace TrayReportApp.Services
             }
         }
 
-        public Task ExportTableEntriesAsync()
+        public async Task ExportTableEntriesAsync()
         {
-            throw new NotImplementedException();
+            SpreadsheetDocument document = SpreadsheetDocument.Create(@"C:\Users\TOKA\Desktop\Cables.xlsx", SpreadsheetDocumentType.Workbook);
+
+            WorkbookPart workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+
+            WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+            Sheets sheets = workbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+            Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Cables" };
+            sheets.Append(sheet);
+
+            SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>() ?? worksheetPart.Worksheet.AppendChild(new SheetData());
+
+            List<CableServiceModel> cables = await GetCablesAsync();
+            Row headerRow = new Row() { RowIndex = 1 };
+            sheetData.Append(headerRow);
+
+            string[] headers = new string[] { "Tag", "Type", "From Location", "To Location", "Routing" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                Cell headerCell = new Cell() { CellReference = ((char)('A' + i)).ToString() + "1" };
+                headerCell.CellValue = new CellValue(headers[i]);
+                headerCell.DataType = new EnumValue<CellValues>(CellValues.String);
+                headerRow.Append(headerCell);
+            }
+
+            for(int i = 0; i < cables.Count; i++)
+            {
+                Row row = new Row() { RowIndex = (uint)(i + 2) };
+                sheetData.Append(row);
+
+                Cell cell = new Cell() { CellReference = "A" + (i + 2) };
+                cell.CellValue = new CellValue(cables[i].Tag);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "B" + (i + 2) };
+                cell.CellValue = new CellValue(cables[i].Type);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "C" + (i + 2) };
+                cell.CellValue = new CellValue(cables[i].FromLocation);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "D" + (i + 2) };
+                cell.CellValue = new CellValue(cables[i].ToLocation);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "E" + (i + 2) };
+                cell.CellValue = new CellValue(cables[i].Routing);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+            }
+
+            TableDefinitionPart tableDefinitionPart = worksheetPart.AddNewPart<TableDefinitionPart>();
+            Table table = new Table()
+            {
+                Id = 1,
+                DisplayName = "Cables",
+                Name = "Cables",
+                Reference = "A1:E" + (cables.Count + 1)
+            };
+
+            AutoFilter autoFilter = new AutoFilter()
+            { 
+                Reference = "A1:E" + (cables.Count + 1) 
+            };
+
+            TableColumns tableColumns = new TableColumns() { Count = 5 };
+            tableColumns.Append(new TableColumn() { Id = 1, Name = "Tag" });
+            tableColumns.Append(new TableColumn() { Id = 2, Name = "Type" });
+            tableColumns.Append(new TableColumn() { Id = 3, Name = "From Location" });
+            tableColumns.Append(new TableColumn() { Id = 4, Name = "To Location" });
+            tableColumns.Append(new TableColumn() { Id = 5, Name = "Routing" });
+
+            TableStyleInfo tableStyleInfo = new TableStyleInfo()
+            {
+                Name = "TableStyleLight8", // Built-in Excel style
+                ShowFirstColumn = false,
+                ShowLastColumn = false,
+                ShowRowStripes = true,
+                ShowColumnStripes = false
+            };
+
+            table.Append(autoFilter);
+            table.Append(tableColumns);
+            table.Append(tableStyleInfo);
+
+            tableDefinitionPart.Table = table;
+            tableDefinitionPart.Table.Save();
+
+            TableParts tableParts = worksheetPart.Worksheet.GetFirstChild<TableParts>() ?? worksheetPart.Worksheet.AppendChild(new TableParts());
+            tableParts.Append(new TablePart() { Id = worksheetPart.GetIdOfPart(tableDefinitionPart) });
+
+            workbookPart.Workbook.Save();
+            document.Dispose();
         }
 
-        public Task ExportFilteredTableEntriesAsync(IEnumerable<CableServiceModel> cables)
+        public async Task ExportFilteredTableEntriesAsync(IEnumerable<CableServiceModel> cables)
         {
-            throw new NotImplementedException();
+            SpreadsheetDocument document = SpreadsheetDocument.Create(@"C:\Users\TOKA\Desktop\CableFilteredExport.xlsx", SpreadsheetDocumentType.Workbook);
+
+            WorkbookPart workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+
+            WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+            Sheets sheets = workbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+            Sheet sheet = new Sheet() { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Cables" };
+            sheets.Append(sheet);
+
+            SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>() ?? worksheetPart.Worksheet.AppendChild(new SheetData());
+
+            Row headerRow = new Row() { RowIndex = 1 };
+            sheetData.Append(headerRow);
+
+            string[] headers = new string[] { "Tag", "Type", "From Location", "To Location", "Routing" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                Cell headerCell = new Cell() { CellReference = ((char)('A' + i)).ToString() + "1" };
+                headerCell.CellValue = new CellValue(headers[i]);
+                headerCell.DataType = new EnumValue<CellValues>(CellValues.String);
+                headerRow.Append(headerCell);
+            }
+
+            for (int i = 0; i < cables.Count(); i++)
+            {
+                Row row = new Row() { RowIndex = (uint)(i + 2) };
+                sheetData.Append(row);
+
+                Cell cell = new Cell() { CellReference = "A" + (i + 2) };
+                cell.CellValue = new CellValue(cables.ElementAt(i).Tag);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "B" + (i + 2) };
+                cell.CellValue = new CellValue(cables.ElementAt(i).Type);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "C" + (i + 2) };
+                cell.CellValue = new CellValue(cables.ElementAt(i).FromLocation);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "D" + (i + 2) };
+                cell.CellValue = new CellValue(cables.ElementAt(i).ToLocation);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+
+                cell = new Cell() { CellReference = "E" + (i + 2) };
+                cell.CellValue = new CellValue(cables.ElementAt(i).Routing);
+                cell.DataType = new EnumValue<CellValues>(CellValues.String);
+                row.Append(cell);
+            }
+
+            TableDefinitionPart tableDefinitionPart = worksheetPart.AddNewPart<TableDefinitionPart>();
+            Table table = new Table()
+            {
+                Id = 1,
+                DisplayName = "Cables",
+                Name = "Cables",
+                Reference = "A1:E" + (cables.Count() + 1)
+            };
+
+            AutoFilter autoFilter = new AutoFilter()
+            {
+                Reference = "A1:E" + (cables.Count() + 1)
+            };
+
+            TableColumns tableColumns = new TableColumns() { Count = 5 };
+            tableColumns.Append(new TableColumn() { Id = 1, Name = "Tag" });
+            tableColumns.Append(new TableColumn() { Id = 2, Name = "Type" });
+            tableColumns.Append(new TableColumn() { Id = 3, Name = "From Location" });
+            tableColumns.Append(new TableColumn() { Id = 4, Name = "To Location" });
+            tableColumns.Append(new TableColumn() { Id = 5, Name = "Routing" });
+
+            TableStyleInfo tableStyleInfo = new TableStyleInfo()
+            {
+                Name = "TableStyleLight8", // Built-in Excel style
+                ShowFirstColumn = false,
+                ShowLastColumn = false,
+                ShowRowStripes = true,
+                ShowColumnStripes = false
+            };
+
+            table.Append(autoFilter);
+            table.Append(tableColumns);
+            table.Append(tableStyleInfo);
+
+            tableDefinitionPart.Table = table;
+            tableDefinitionPart.Table.Save();
+
+            TableParts tableParts = worksheetPart.Worksheet.GetFirstChild<TableParts>() ?? worksheetPart.Worksheet.AppendChild(new TableParts());
+            tableParts.Append(new TablePart() { Id = worksheetPart.GetIdOfPart(tableDefinitionPart) });
+
+            workbookPart.Workbook.Save();
+            document.Dispose();
         }
     }
 }

@@ -7,9 +7,9 @@
     <MudStack Spacing="0">
         <MudCheckBox T="bool" Label="Select All" Size="@Size.Small" Value="@_selectAll" ValueChanged="@SelectAll" />
         <MudStack Spacing="0" Style="overflow-y:auto;max-height:250px">
-            @foreach (var item in TypesInTable)
+            @foreach (var item in PurposeInTable)
             {
-                <MudCheckBox T="bool" Label="@item.Type" Size="@Size.Small" Value="@SelectedTypeItems.Contains(item.Type)" ValueChanged="@((bool value) => SelectedChanged(value, item))" />
+                <MudCheckBox T="bool" Label="@item.Purpose" Size="@Size.Small" Value="@SelectedTypeItems.Contains(item.Purpose)" ValueChanged="@((bool value) => SelectedChanged(value, item))" />
             }
         </MudStack>
         <MudStack Row="true">
@@ -19,12 +19,12 @@
     </MudStack>
 </MudPopover>
 
-@code{
-    [Parameter] 
+@code {
+    [Parameter]
     public FilterContext<CableTableModel> Context { get; set; }
 
     [Parameter]
-    public IEnumerable<CableTypeServiceModel> TypesInTable { get; set; }
+    public IEnumerable<CableTypeServiceModel> PurposeInTable { get; set; }
 
     private HashSet<string> SelectedTypeItems = new HashSet<string>();
     private HashSet<string> FilteredTypeItems = new HashSet<string>();
@@ -40,7 +40,7 @@
 
         _filterDefinition = new FilterDefinition<CableTableModel>
             {
-                FilterFunction = (item) => SelectedTypeItems.Contains(item.Type)
+                FilterFunction = (item) => SelectedTypeItems.Contains(item.Purpose)
             };
     }
 
@@ -53,17 +53,17 @@
     {
         if (value)
         {
-            if (!SelectedTypeItems.Contains(item.Type))
+            if (!SelectedTypeItems.Contains(item.Purpose))
             {
-                SelectedTypeItems.Add(item.Type);
+                SelectedTypeItems.Add(item.Purpose);
             }
         }
         else
         {
-            SelectedTypeItems.Remove(item.Type);
+            SelectedTypeItems.Remove(item.Purpose);
         }
 
-        if (SelectedTypeItems.Count == TypesInTable.Count())
+        if (SelectedTypeItems.Count == PurposeInTable.Count())
         {
             _selectAll = true;
         }
@@ -82,7 +82,7 @@
     }
 
     private async Task ClearFilterAsync(FilterContext<CableTableModel> context)
-    {        
+    {
         RefreshTypesFilter();
         _icon = Icons.Material.Outlined.FilterAlt;
         await context.Actions.ClearFilterAsync(_filterDefinition);
@@ -102,7 +102,7 @@
             SelectedTypeItems.Clear();
         }
 
-        if (SelectedTypeItems.Count == TypesInTable.Count())
+        if (SelectedTypeItems.Count == PurposeInTable.Count())
         {
             _selectAll = true;
         }
@@ -114,10 +114,10 @@
 
     private void RefreshTypesFilter()
     {
-        foreach (var cableType in TypesInTable)
+        foreach (var cableType in PurposeInTable)
         {
-            SelectedTypeItems.Add(cableType.Type);
-            FilteredTypeItems.Add(cableType.Type);
+            SelectedTypeItems.Add(cableType.Purpose);
+            FilteredTypeItems.Add(cableType.Purpose);
         }
     }
 }

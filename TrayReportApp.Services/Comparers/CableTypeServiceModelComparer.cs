@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using TrayReportApp.Services.Models;
 
 namespace TrayReportApp.Services.Comparers
