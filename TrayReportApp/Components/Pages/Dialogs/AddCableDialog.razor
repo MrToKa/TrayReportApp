@@ -21,7 +21,7 @@
     </DialogContent>
 
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveCableTypeAsync">Save</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveCableAsync">Save</MudButton>
         <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -44,7 +44,7 @@
         CableTypes = await CableTypeService.GetCableTypesAsync();
     }
 
-    private async Task SaveCableTypeAsync()
+    private async Task SaveCableAsync()
     {
         try
         {

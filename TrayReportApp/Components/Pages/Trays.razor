@@ -1,0 +1,121 @@
+﻿@page "/trays"
+
+@using TrayReportApp.Components.Pages.Dialogs
+@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITrayService TrayService
+
+<PageTitle>Trays</PageTitle>
+
+<h1>Trays</h1>
+
+<MudGrid Spacing="3" Justify="Justify.Center">
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" DropShadow="false" OnClick="@(() => AddTrayAsync())">Create New Tray</MudButton>
+    </MudItem>
+    <MudItem>
+        <MudFileUpload @ref="@_fileUpload" T="IBrowserFile" OnFilesChanged="UploadFile" Accept=".xlsx">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Add Trays from file
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SimCardDownload" DropShadow="false" OnClick="@(() => ExportTableAsync())">Export Full Report</MudButton>
+    </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FilterList" DropShadow="false" OnClick="@(() => ExportFilteredTableAsync())">Export Filtered Report</MudButton>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="0" Class="pa-4">
+    <MudDataGrid T="TrayServiceModel" @ref="dataGrid" Items="@Elements" ReadOnly="true" Bordered="true" Dense="true" Hover="true" Striped="true" EditMode="DataGridEditMode.Cell" EditTrigger="DataGridEditTrigger.OnRowClick" CommittedItemChanges="@ItemHasBeenCommitted" Filterable="true" FilterMode="DataGridFilterMode.ColumnFilterRow" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortMode="SortMode.Single" RowsPerPage="25" Loading="_loading">
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Title="Name" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.Type" Title="Type" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.Length" Title="Length [m]" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.Weight" Title="Weight [kg]" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.Purpose" Title="Purpose" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.SupportsCount" Title="Supports Count" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.FreeSpace" Title="Free Width" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.FreePercentage" Title="Free Percentage" Sortable="true" Filterable="true" />
+            <PropertyColumn Property="x => x.ReportType" Title="Report Type" Sortable="true" Filterable="true" />
+        </Columns>
+    </MudDataGrid>
+</MudPaper>
+
+@code {
+    private MudDataGrid<TrayServiceModel> dataGrid = new MudDataGrid<TrayServiceModel>();
+    private List<TrayServiceModel> Elements { get; set; } = new List<TrayServiceModel>();
+
+    private MudFileUpload<IBrowserFile> _fileUpload;
+    private Task ClearAsync()
+    => _fileUpload?.ClearAsync() ?? Task.CompletedTask;
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadDataAsync();
+    }
+
+    private async Task ReloadDataAsync()
+    {
+        Elements = await TrayService.GetTraysAsync();
+        _loading = false;
+    }
+
+    private async Task AddTrayAsync()
+    {
+        DialogParameters parameters = new DialogParameters<AddTrayDialog>
+        {
+            { x => x.Title , "Add New Tray" }
+        };
+
+        IDialogReference dialogResult = await DialogService.ShowAsync<AddTrayDialog>("", parameters);
+        DialogResult result = await dialogResult.Result;
+
+        if (!result.Canceled)
+        {
+            await ReloadDataAsync();
+        }
+
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        // var file = files.FirstOrDefault();
+        // if (file != null)
+        // {
+        //     var trayServiceModels = await TrayService.ImportTraysAsync(file);
+        //     if (trayServiceModels != null)
+        //     {
+        //         Elements = trayServiceModels;
+        //         Snackbar.Add("Trays imported", Severity.Success);
+        //     }
+        // }
+    }
+
+    private async Task ExportTableAsync()
+    {
+        //await TrayService.ExportTraysAsync(Elements);
+    }
+
+    private async Task ExportFilteredTableAsync()
+    {
+        //await TrayService.ExportTraysAsync(dataGrid.GetFilteredItems());
+    }
+
+    private async Task ItemHasBeenCommitted(TrayServiceModel item)
+    {
+        await TrayService.UpdateTrayAsync(item);
+        Snackbar.Add("Tray updated", Severity.Success);
+    }
+}

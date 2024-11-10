@@ -54,10 +54,11 @@ namespace TrayReportApp.Services
             await _repo.SaveChangesAsync();
         }
 
-        public async Task<SupportServiceModel> GetSupportAsync(string name)
+        public async Task<SupportServiceModel> GetSupportAsync(string type)
         {
             var support = await _repo.All<Support>()
-                .FirstOrDefaultAsync(s => s.Name.Contains(name));
+                .FirstOrDefaultAsync(s => s.Name == type);
+
             if (support == null)
             {
                 return null;

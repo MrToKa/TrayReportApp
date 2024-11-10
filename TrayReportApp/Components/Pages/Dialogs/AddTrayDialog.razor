@@ -1,0 +1,73 @@
+﻿@using TrayReportApp.Services.Contracts
+@using TrayReportApp.Services.Models
+
+@inject ISnackbar Snackbar
+@inject ITrayService TrayService
+@inject ITrayTypeService TrayTypeService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-3 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Variant="Variant.Outlined" Label="Name" Required="true" @bind-Value="TrayElement.Name" />
+        <MudSelect T="string" Variant="Variant.Outlined" Label="Type" Required="true" @bind-Value="TrayElement.Type">
+            @foreach (var trayType in TrayTypes)
+            {
+                <MudSelectItem Value="@trayType.Type" />
+            }
+        </MudSelect>
+        @* <MudAutocomplete T="string" @bind-Value="TrayElement.Type" SearchFunc="Search" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined" Label="Type" Required="true" Immediate="true" Clearable="true" CoerceText="true" ResetValueOnEmptyText="true" CoerceValue="false" Validation="@(new Func<string, IEnumerable<string>>(Validate))" /> *@
+        <MudTextField T="double" Variant="Variant.Outlined" Required="true" Label="Length" @bind-Value="TrayElement.Length" />
+        <MudTextField T="string" Variant="Variant.Outlined" Required="true" Label="Purpose" @bind-Value="TrayElement.Purpose" />
+        <MudTextField T="string" Variant="Variant.Outlined" Required="true" Label="ReportType" @bind-Value="TrayElement.ReportType" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveTrayAsync">Save</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="@(() => MudDialog.Cancel())">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    private TrayServiceModel TrayElement { get; set; } = new TrayServiceModel();
+    private List<TrayTypeServiceModel> TrayTypes { get; set; } = new List<TrayTypeServiceModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        TrayTypes = await TrayTypeService.GetTrayTypesAsync();
+    }
+
+    private async Task SaveTrayAsync()
+    {
+        try
+        {
+            await TrayService.CreateTrayAsync(TrayElement);
+            Snackbar.Add("Tray saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error adding Tray: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<string>> Search(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token);
+        if (string.IsNullOrEmpty(value))
+        {
+            return TrayTypes.Select(x => x.Type.ToString());
+        }
+        return TrayTypes.Where(x => x.Type.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+        .Select(x => x.Type.ToString());
+    }
+}

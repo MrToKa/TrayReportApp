@@ -75,11 +75,11 @@ namespace TrayReportApp.Services
             await _repo.SaveChangesAsync();
         }
 
-        public async Task<TrayTypeServiceModel> GetTrayTypeAsync(int id)
+        public async Task<TrayTypeServiceModel> GetTrayTypeAsync(string type)
         {
             var trayType = await _repo.All<TrayType>()
                 .Include(t => t.Supports)
-                .Where(t => t.Id == id)
+                .Where(t => t.Type == type)
                 .FirstOrDefaultAsync();
 
             if (trayType == null)
@@ -228,9 +228,9 @@ namespace TrayReportApp.Services
                 }
             }
         }
-        private async Task<SupportServiceModel> GetSupportTypeAsync(string trayType)
+        private async Task<SupportServiceModel> GetSupportTypeAsync(string type)
         {
-            SupportServiceModel? supportType = await _supportService.GetSupportAsync(trayType);
+            SupportServiceModel? supportType = await _supportService.GetSupportAsync(type);
 
             if (supportType == null)
             {

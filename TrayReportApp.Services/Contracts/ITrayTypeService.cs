@@ -6,7 +6,7 @@ namespace TrayReportApp.Services.Contracts
     public interface ITrayTypeService 
     {
         Task<List<TrayTypeServiceModel>> GetTrayTypesAsync();
-        Task<TrayTypeServiceModel> GetTrayTypeAsync(int id);
+        Task<TrayTypeServiceModel> GetTrayTypeAsync(string type);
         Task<TrayTypeServiceModel> CreateTrayTypeAsync(TrayTypeServiceModel trayType);
         Task<TrayTypeServiceModel> UpdateTrayTypeAsync(TrayTypeServiceModel trayType);
         Task DeleteTrayTypeAsync(int id);

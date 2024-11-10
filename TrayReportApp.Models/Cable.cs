@@ -7,7 +7,7 @@ namespace TrayReportApp.Models
     {
         [Key]
         public int Id { get; set; }
-        public string Tag { get; set; }
+        public required string Tag { get; set; }
         public string? Type { get; set; }
 
         [ForeignKey(nameof(CableType))]

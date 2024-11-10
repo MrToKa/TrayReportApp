@@ -13,19 +13,19 @@ namespace TrayReportApp.Services
     public class TrayService : ITrayService
     {
         private readonly ITrayReportAppDbRepository _repo;
-        private readonly ISupportService _supportService;
         private readonly ICableService _cableService;
         private readonly ICableTypeService _cableTypeService;
+        private readonly ITrayTypeService _trayTypeService;
 
         public TrayService(ITrayReportAppDbRepository repo,
-            ISupportService supportService,
             ICableService cableService,
-            ICableTypeService cableTypeService)
+            ICableTypeService cableTypeService,
+            ITrayTypeService trayTypeService)
         {
             _repo = repo;
-            _supportService = supportService;
             _cableService = cableService;
             _cableTypeService = cableTypeService;
+            _trayTypeService = trayTypeService;
         }
 
         public async Task CreateTrayAsync(TrayServiceModel tray)
@@ -37,8 +37,7 @@ namespace TrayReportApp.Services
                 return;
             }
 
-            TrayType? trayType = await _repo.GetByIdAsync<TrayType>(tray.TrayTypeId);
-            int supportsCount = CalculateSupportsCount(tray);
+            TrayType trayType = await _repo.All<TrayType>().FirstOrDefaultAsync(t => t.Type == tray.Type);
 
             Tray newTray = new Tray
             {
@@ -46,17 +45,18 @@ namespace TrayReportApp.Services
                 Type = tray.Type,
                 Length = tray.Length,
                 Purpose = tray.Purpose,
-                TrayTypeId = tray.TrayTypeId,
+                ReportType = tray.ReportType,
                 TrayType = trayType,
-                SupportsCount = supportsCount
+                TrayTypeId = trayType.Id,
             };
 
             await _repo.AddAsync(newTray);
             await _repo.SaveChangesAsync();
-
-            newTray.Weight = CalculateTrayWeight(newTray);
-            //newTray.FreeSpace = newTray.Length;
-            //newTray.FreePercentage = 100;
+             
+            newTray.SupportsCount = await CalculateSupportsCount(newTray);
+            newTray.Weight = await CalculateTrayWeight(newTray);
+            newTray.FreeSpace = await CalculateFreeSpace(newTray);
+            newTray.FreePercentage = await CalculateFreePercentage(newTray);
 
             await _repo.SaveChangesAsync();
         }
@@ -81,7 +81,7 @@ namespace TrayReportApp.Services
                 return null;
             }
 
-            var trayCables = await GetTrayCablesAsync(tray.Name);
+            //var trayCables = await GetTrayCablesAsync(tray.Name);
 
             return new TrayServiceModel
             {
@@ -94,8 +94,8 @@ namespace TrayReportApp.Services
                 TrayTypeId = tray.TrayTypeId,
                 FreeSpace = tray.FreeSpace,
                 FreePercentage = tray.FreePercentage,
-                Cables = trayCables,
-                SupportsCount = tray.SupportsCount                
+                SupportsCount = tray.SupportsCount,
+                ReportType = tray.ReportType
             };
         }
 
@@ -115,7 +115,7 @@ namespace TrayReportApp.Services
                 FreeSpace = t.FreeSpace,
                 FreePercentage = t.FreePercentage,
                 SupportsCount = t.SupportsCount,
-                Cables = GetTrayCablesAsync(t.Name).Result                
+                ReportType = t.ReportType,               
             }).ToList();
         }
 
@@ -132,13 +132,14 @@ namespace TrayReportApp.Services
             existingTray.Type = tray.Type;
             existingTray.Length = tray.Length;
             existingTray.Purpose = tray.Purpose;
-            existingTray.TrayTypeId = tray.TrayTypeId;
+            existingTray.ReportType = tray.ReportType;
 
-            if (existingTray.Type != tray.Type)
-            {
-                existingTray.Type = tray.Type;
-                existingTray.SupportsCount = CalculateSupportsCount(tray);
-            }
+            //if (existingTray.Type != tray.Type)
+            //{
+            //    existingTray.Type = tray.Type;
+            //    existingTray.TrayTypeId = tray.TrayTypeId;
+            //    existingTray.SupportsCount = CalculateSupportsCount(tray);
+            //}
 
             await _repo.SaveChangesAsync();
         }
@@ -215,17 +216,23 @@ namespace TrayReportApp.Services
         //    }
         //}
 
-        private async Task<List<CableServiceModel>> GetTrayCablesAsync(string trayName)
-        {
-            var cables = await _cableService.GetCablesAsync();
-            return cables.Where(c => c.Routing.Split('/', StringSplitOptions.RemoveEmptyEntries)
-                                                            .Any(segment => string.Equals(segment, trayName, StringComparison.OrdinalIgnoreCase)))
-                                                            .ToList();
-        }
+        //private async Task<List<Cable>> GetTrayCablesAsync(string trayName)
+        //{
+        //    var cables = await _repo.All<Cable>()
+        //        .Include(c => c.CableType)
+        //        .ToListAsync();
 
-        private int CalculateSupportsCount(TrayServiceModel tray)
+        //    return cables.Where(c => c.Routing.Split('/', StringSplitOptions.RemoveEmptyEntries)
+        //                                                    .Any(segment => string.Equals(segment, trayName, StringComparison.OrdinalIgnoreCase)))
+        //                                                    .ToList();
+        //}
+
+        private async Task<int> CalculateSupportsCount(Tray tray)
         {
-            var traySupportDistance = _supportService.GetSupportAsync(tray.Type).Result.Distance;
+            var traySupportDistance = await _repo.All<Support>()
+                .Where(s => s.Id == tray.TrayType.SupportId)
+                .Select(s => s.Distance)
+                .FirstOrDefaultAsync();
             var trayLength = tray.Length;
 
             if (trayLength <= 0)
@@ -243,43 +250,81 @@ namespace TrayReportApp.Services
             return supportsCount;
         }
 
-        private double CalculateTrayWeight(Tray tray)
+        private async Task<double> CalculateTrayWeight(Tray tray)
         {
-            double trayWeight = 0;
+            double totalTrayWeight = 0;
+
+            HashSet<string> missingTypes = new HashSet<string>();
 
             if (tray != null)
             {
-                var cables = GetTrayCablesAsync(tray.Name).Result;
+                var cables = await _repo.All<Cable>()
+                    .Include(c => c.CableType)
+                    .ToListAsync();
+
+                var filteredCables = cables
+                    .Where(c => c.Routing != null && c.Routing.Split('/', StringSplitOptions.RemoveEmptyEntries)
+                                                .Any(segment => string.Equals(segment, tray.Name, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
 
                 double supportWeight = tray.TrayType.Supports.Weight;
                 int supportsCount = tray.SupportsCount;
-                trayWeight = supportWeight * supportsCount;
+                double supportsWeight = supportWeight * supportsCount;
+                double supportsWeightPerMeter = supportsWeight / tray.Length;
 
-                trayWeight += tray.Length * tray.TrayType.Weight;
+                double trayWeightLoadPerMeter = tray.TrayType.Weight + supportsWeightPerMeter;
+                totalTrayWeight = trayWeightLoadPerMeter * tray.Length;
 
-                foreach (var cable in cables)
+                //if (tray.TrayType.Length.HasValue)
+                //{
+                //    trayWeight += (tray.Length * 1000) * (tray.TrayType.Weight / tray.TrayType.Length.Value);
+                //}
+                double cableWeight = 0;
+
+                foreach (var cable in filteredCables)
                 {
                     var cableType = cable.Type;
 
-                    if (cableType == null)
-                    {
-                        continue;
-                    }
+                    //if (cableType == null)
+                    //{
+                    //    missingTypes.Add("No type for cable assigned");
+                    //    continue;
+                    //}
 
-                    double cableWeight = _cableTypeService.GetCableTypeAsync(cableType).Result.Weight;
-                    trayWeight += cableWeight * tray.Length;
+                    var cableTypeEntity = _repo.All<CableType>().FirstOrDefault(ct => ct.Type == cableType);
+                    if (cableTypeEntity != null)
+                    {
+                        cableWeight += cableTypeEntity.Weight / 1000;
+                    }
+                    else
+                    {
+                        missingTypes.Add(cableType);
+                    }
                 }
+
+                double totalCablesWeight = cableWeight * tray.Length;
+                totalTrayWeight += totalCablesWeight;
+
+                //totalWeightPerMeter
+                double totalWeightPerMeter = trayWeightLoadPerMeter + cableWeight;
+
+
+
+                //if (missingTypes.Count > 0)
+                //{
+                //    throw new ArgumentException($"Cable types not found: {string.Join(", ", missingTypes)}");
+                //}
             }
 
-            return trayWeight;
+            return Math.Round(totalTrayWeight, 3);
         }
 
-        private double CalculateFreeSpace(Tray tray)
+        private async Task<double> CalculateFreeSpace(Tray tray)
         {
             return 0;
         }
 
-        private double CalculateFreePercentage(Tray tray)
+        private async Task<double> CalculateFreePercentage(Tray tray)
         {
             return 0;
         }

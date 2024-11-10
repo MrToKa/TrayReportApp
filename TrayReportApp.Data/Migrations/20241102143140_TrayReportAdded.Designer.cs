@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TrayReportApp.Data;
@@ -11,9 +12,11 @@ using TrayReportApp.Data;
 namespace TrayReportApp.Data.Migrations
 {
     [DbContext(typeof(TrayReportAppDbContext))]
-    partial class TrayReportAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241102143140_TrayReportAdded")]
+    partial class TrayReportAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,7 +56,7 @@ namespace TrayReportApp.Data.Migrations
 
                     b.HasIndex("CableTypeId");
 
-                    b.ToTable("Cables", (string)null);
+                    b.ToTable("Cables");
                 });
 
             modelBuilder.Entity("TrayReportApp.Models.CableType", b =>
@@ -79,7 +82,7 @@ namespace TrayReportApp.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CableTypes", (string)null);
+                    b.ToTable("CableTypes");
                 });
 
             modelBuilder.Entity("TrayReportApp.Models.Support", b =>
@@ -102,7 +105,7 @@ namespace TrayReportApp.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Supports", (string)null);
+                    b.ToTable("Supports");
                 });
 
             modelBuilder.Entity("TrayReportApp.Models.Tray", b =>
@@ -150,7 +153,7 @@ namespace TrayReportApp.Data.Migrations
 
                     b.HasIndex("TrayTypeId");
 
-                    b.ToTable("Trays", (string)null);
+                    b.ToTable("Trays");
                 });
 
             modelBuilder.Entity("TrayReportApp.Models.TrayType", b =>
@@ -184,7 +187,7 @@ namespace TrayReportApp.Data.Migrations
 
                     b.HasIndex("SupportId");
 
-                    b.ToTable("TrayTypes", (string)null);
+                    b.ToTable("TrayTypes");
                 });
 
             modelBuilder.Entity("TrayReportApp.Models.Cable", b =>
